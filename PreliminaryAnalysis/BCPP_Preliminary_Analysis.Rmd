@@ -1,0 +1,268 @@
+---
+title: "BCPP Preliminary Analysis"
+author: "Melody Owen"
+output: html_document
+date: "2025-05-28"
+---
+
+```{r setup, include = FALSE}
+# Package names
+packages <- c("tidyverse", "lme4", "MASS", "Matrix", "matrixcalc", "latex2exp",
+              "ICC", "nlme", "bindata", "gee", "crt2power", "mosaic", "haven",
+              "tmvtnorm", "ggplot2", "latex2exp", "reshape2", "gridExtra",
+              "table1")
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+```
+
+
+```{r load_data, include = FALSE}
+# Loading in original datasets
+dat1 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr1_20samp_open.sas7bdat")
+dat2 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr2_20samp_open.sas7bdat")
+dat3 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr3_20samp_open.sas7bdat")
+```
+
+
+```{r column_names, include = FALSE}
+# Create a dataframe for each set of column names
+names1 <- tibble(colname = sort(colnames(dat1)), dataset = "dat1")
+names2 <- tibble(colname = sort(colnames(dat2)), dataset = "dat2")
+names3 <- tibble(colname = sort(colnames(dat3)), dataset = "dat3")
+
+# Bind and pivot to wide
+all_names <- bind_rows(names1, names2, names3) %>%
+  mutate(present = colname) %>%
+  pivot_wider(names_from = dataset, values_from = present) %>%
+  arrange(colname)
+
+all_names_filtered <- bind_rows(names1, names2, names3) %>%
+  mutate(present = colname) %>%
+  pivot_wider(names_from = dataset, values_from = present) %>%
+  arrange(colname) %>%
+  dplyr::filter(colname %in% c("de_subj_idC", # Subject identifier
+                               "community", # Community identifier
+                               
+                               "random_arm", # Randomization arm (Treatment Assignment)
+                               "gender", # Gender
+                               
+                               # At start of study? Unclear
+                               "hiv_status_current", # Current HIV status
+                               "circumcised", # Male circumcision
+                               
+                               # "Coverage Endpoint"
+                               "endpoint_coverage_htc", # Coverage endpoint: HIV-tested or diagnosed HIV+
+                               "endpoint_coverage_mc", # Coverage endpoint: male circumcision
+                               
+                               
+                               # Outcome
+                               "endpoint_seroconvert") # Incidence endpoint: seroconverted by study completion
+  )
+
+# Keeping subject ID the same name so I can match the data
+dat1_renamed <- dat1 %>% rename_with(~ paste0(., "_dat1"), -de_subj_idC)
+dat2_renamed <- dat2 %>% rename_with(~ paste0(., "_dat2"), -de_subj_idC)
+dat3_renamed <- dat3 %>% rename_with(~ paste0(., "_dat3"), -de_subj_idC)
+```
+
+
+```{r merging_datasets include = FALSE}
+# Circumcision in all three datasets
+combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
+  full_join(dat3_renamed, by = "de_subj_idC") %>%
+  dplyr::select(de_subj_idC, starts_with("random_arm_dat"), 
+                contains("community_dat"),
+                starts_with("Gender_dat"), hiv_status_current_dat1,
+                starts_with("circumcised_dat"), contains("endpoint_coverage_mc"),
+                contains("endpoint_coverage_htc"), contains("seroconvert")) %>%
+  mutate(random_arm = ifelse(!is.na(random_arm_dat1), random_arm_dat1,
+                             ifelse(!is.na(random_arm_dat2), random_arm_dat2,
+                                    random_arm_dat3))) %>%
+  mutate(gender = ifelse(!is.na(gender_dat1), gender_dat1,
+                         ifelse(!is.na(gender_dat2), gender_dat2,
+                                gender_dat3))) %>%
+  mutate(community = ifelse(!is.na(community_dat1), community_dat1,
+                            ifelse(!is.na(community_dat2), community_dat2,
+                                   community_dat3))) %>%
+  dplyr::select(subject_ID = de_subj_idC, community, gender,
+                random_arm, hiv_status_current = hiv_status_current_dat1,
+                starts_with("circumcised"),
+                contains("endpoint_coverage_mc"), 
+                contains("endpoint_coverage_htc"),
+                contains("seroconvert")) %>%
+  mutate(gender = case_when(gender == "F" ~ "Female",
+                            gender == "M" ~ "Male",
+                            TRUE ~ NA_character_
+  )) %>%
+  mutate(circumcised_dat1 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat1),
+         circumcised_dat2 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat2),
+         circumcised_dat3 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat3)) %>%
+  mutate(circumcised_dat2 = ifelse(circumcised_dat1 == "Yes", "Yes",
+                                   circumcised_dat2)) %>%
+  mutate(circumcised_dat3 = ifelse(circumcised_dat2 == "Yes", "Yes",
+                                   ifelse(circumcised_dat1 == "Yes", "Yes",
+                                          circumcised_dat3))) %>%
+  mutate(across(everything(), ~ na_if(., ""))) %>%
+  mutate(across(where(is.character), str_trim)) %>%
+  mutate(endpoint_coverage_mc_dat1 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat1),
+         endpoint_coverage_mc_dat2 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat2),
+         endpoint_coverage_mc_dat3 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat3)) %>%
+  mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes",
+                                       "Began study circumcised", NA)) %>%
+  mutate(endpoint_coverage_mc = ifelse(gender == "Female", "Female",
+                                       endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat3 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat2 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat1 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & circumcised_dat3 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & circumcised_dat2 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) &
+                                         rowSums(across(contains("dat"), ~ replace_na(. == "No", FALSE))) > 0 &
+                                         rowSums(across(contains("dat"), ~ replace_na(. == "Yes", FALSE))) == 0,
+                                       "No", endpoint_coverage_mc))
+```
+
+
+```{r cleaning_data include = FALSE}
+cleanDat <- combinedDat %>%
+  dplyr::select(original_subject_id = subject_ID, 
+                original_cluster_id = community, 
+                random_arm, gender, 
+                hiv_status_current,
+                endpoint_coverage_htc = endpoint_coverage_htc_dat1, 
+                endpoint_coverage_mc, 
+                endpoint_seroconvert = endpoint_seroconvert_dat1) %>%
+  arrange(original_cluster_id, original_subject_id) %>%
+  mutate_if(is.character, list(~na_if(., ""))) %>% # change any blanks to NAs
+  rowid_to_column("subject_id") %>%
+  group_by(original_cluster_id) %>%
+  mutate(cluster_id = cur_group_id()) %>%
+  mutate(subj_cluster_id = row_number()) %>%
+  ungroup() %>%
+  add_count(cluster_id, name = "cluster_size") %>%
+  relocate(subject_id, subj_cluster_id, cluster_id, cluster_size) %>%
+  ungroup() %>%
+  dplyr::select(-original_subject_id, -original_cluster_id) %>%
+  mutate(random_arm = ifelse(random_arm == "Standard of Care", "Control",
+                             ifelse(random_arm == "Intervention", "Treatment", NA))) %>%
+  mutate(endpoint_seroconvert = ifelse(hiv_status_current == "HIV-infected",
+                                       "Began study HIV-infected", endpoint_seroconvert))
+  
+```
+
+# Baseline Characteristics of BCPP Dataset
+
+## Characteristics of Treatment Groups
+
+Below shows Table 1 for the baseline characteristics of the BCPP dataset. All proportions are calculated using this dataset (no exclusions). Then, we exclude any individuals who start the study HIV-infected, refused HIV testing, or had missing HIV testing. 
+
+```{r creating_table1 echo = FALSE}
+table1_cleanDat <- table1(~cluster_size + gender + hiv_status_current + 
+                            endpoint_coverage_htc + endpoint_coverage_mc + 
+                            endpoint_seroconvert | random_arm, data = cleanDat)
+table1_cleanDat
+
+paste0("Excluded from the study: n = ", nrow(cleanDat) - nrow(filter(cleanDat, hiv_status_current == "HIV-uninfected")))
+```
+
+## Male Circumcision Characteristics
+
+Below shows more characteristics of male circumcision. 
+
+```{r creating_table1 echo = FALSE}
+table2_cleanDat <- table1(~ hiv_status_current + 
+                            endpoint_coverage_htc + 
+                            endpoint_seroconvert | endpoint_coverage_mc, 
+                          data = mutate(cleanDat, 
+                                        endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc), "Missing", endpoint_coverage_mc)))
+table2_cleanDat
+```
+
+
+## Gender Characteristics
+
+Below shows more characteristics of gender. 
+
+```{r creating_table1 echo = FALSE}
+table3_cleanDat <- table1(~ hiv_status_current + 
+                            endpoint_coverage_htc + 
+                            endpoint_seroconvert | gender, 
+                          data = mutate(cleanDat, 
+                                        gender = ifelse(is.na(gender), "Missing", gender)))
+table3_cleanDat
+```
+
+## Outcome Characteristics
+
+Below shows more characteristics of HIV status at the end of the study. 
+
+```{r creating_table1 echo = FALSE}
+table4_cleanDat <- table1(~ gender + 
+                            endpoint_coverage_mc + 
+                            endpoint_coverage_htc | endpoint_seroconvert, 
+                          data = mutate(cleanDat, 
+                                        endpoint_seroconvert = ifelse(is.na(endpoint_seroconvert), "Missing", endpoint_seroconvert)))
+table4_cleanDat
+```
+
+
+# Modeling Results
+
+```{r create_model_dat include = FALSE}
+modelDat <- cleanDat %>%
+  # Calculate proportions first
+  mutate(T_k = ifelse(random_arm == "Treatment", 1, 
+                      ifelse(random_arm == "Control", 0, NA))) %>%
+  # 1 if circumcised before or during study, 0 if no, "Female" if female
+  mutate(X1_ik = ifelse(endpoint_coverage_mc == "Yes" | endpoint_coverage_mc == "Began study circumcised", "Yes",
+                        ifelse(endpoint_coverage_mc == "No", "No", endpoint_coverage_mc))) %>%
+  # 1 if HTC yes, 0 if HTC no
+  mutate(X2_ik = ifelse(endpoint_coverage_htc == "Yes", 1,
+                        ifelse(endpoint_coverage_htc == "No", 0, NA))) %>%
+  # 1 if Male, circumcised, and got HTC | 1 if female and got HTC, 0 otherwise
+  mutate(X12_ik = ifelse(gender == "Male" & X1_ik == "Yes" & X2_ik == 1, 1, 
+                         ifelse(gender == "Female" & X2_ik == 1, 1, 0))) %>%
+  # Gender characteristic, 1 if Male, 0 if female
+  mutate(C1_ik = ifelse(gender == "Male", 1, 
+                        ifelse(gender == "Female", 0, NA))) %>%
+  group_by(cluster_id) %>%
+  # Count of all men in each cluster
+  mutate(male_count = sum(gender == "Male", na.rm = TRUE)) %>%
+  # Count of all male circumcised men in each cluster
+  mutate(mc_count = sum(X1_ik == "Yes", na.rm = TRUE)) %>%
+  # Count of those who received HTC in each cluster
+  mutate(htc_count = sum(X2_ik == 1, na.rm = TRUE)) %>%
+  # Count of those who received their full treatment in each cluster
+  mutate(full_trt_count = sum(X12_ik == 1, na.rm = TRUE)) %>%
+  # Count of those who started study HIV positive in each cluster
+  mutate(hiv_infected_count = sum(hiv_status_current == "HIV-infected", na.rm = TRUE)) %>%
+  ungroup() %>%
+  # Treatment related proportions
+  mutate(Z1_k = mc_count/male_count,
+         Z2_k = htc_count/cluster_size,
+         Z12_k = full_trt_count/cluster_size) %>%
+  # Characteristic related proportions
+  mutate(hiv_infected_prop = hiv_infected_count/cluster_size) %>%
+  mutate(Y_ik = ifelse(endpoint_seroconvert == "Yes", 1,
+                       ifelse(endpoint_seroconvert == "No", 0, NA))) %>%
+  # Then filter out people who already have HIV or refused testing
+  dplyr::filter(hiv_status_current == "HIV-uninfected")
+```
+
+
+
