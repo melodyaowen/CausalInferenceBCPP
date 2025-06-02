@@ -1,16 +1,108 @@
 ---
 title: "BCPP Preliminary Analysis"
 author: "Melody Owen"
-output: html_document
-date: "2025-05-28"
+date: "2025-05-30"
+output:
+  pdf_document: default
+  html_document: default
 ---
+
+# Overview
+
+## Questions of Interest
+
+1. What is the overall effect (OR) of the BCPP intervention on HIV incidence?
+
+    a. Use a logistic regression model
+    b. Intent to treat (ITT) analysis
+  
+2. To what extent is the overall effect mediated by VMMC? 
+
+    a. In this case, "overall" means combining spillover effects with individual effects
+    b. Define the mediation proportion
+  
+3. What is the individual effect (OR) of the BCPP intervention?
+
+    a. This is the individual effect among those to intervention villages
+    b. Will be a standard mediation analysis
+    c. Related: To what extent is the individual effect mediated by receipt of VMMC? Look at the mediation proportion in a standard mediation analysis.
+  
+4. What is the spillover effect (OR) of BCPP intervention in intervention villages?
+
+    a. Spillover effect is among those in intervention villages who did not receive the intervention
+    b. Related: To what extent is the spillover effect mediated by villages level VMMC deliver (mediation proportion)? (Look at Tyler's paper)
+  
+5. What is the total spillover (OR) of BCPP intervention?
+
+    a. Total spillover effect is everyone in BCPP who did not receive the intervention in control and intervention villages
+    b. Related: To what extent is the total spillover effect mediated by village level of VMMC delivery (mediation proportion)?
+
+## Notes
+
+- Assume that there is no confounding or effect modification by anything including "village/cluster" and their sizes to start.
+- For each of the above analyses, we can specify the causal assumptions needed for validity. It would be great to also identify the assumptions that are empirically verifiable or partially empirically verifiable.
+- Once we've estimated the parameters and determined the assumptions needed for them to have a causal interpretation, and empirically verified those that we can, we can see if we have any new methodology or if this is an advanced application to existing methodology.
+
+\newpage
+
+# Notation
+
+$K$ is the total number of villages in the study, indexed as $k = 1,...,K$
+
+$m_k$ is the total number of individuals in cluster $k$, indexed as $i = 1,...,m_k$
+
+- $m_k^{(\text{male})}$ are the total number of males in cluster $k$
+- $m_k^{(\text{female})}$ are the total number of females in cluster $k$
+    
+$Y_{ik}$ is the outcome of subject $i$ in cluster $k$, and is binary
+
+- In BCPP, $Y_{ik} = 1$ if a subject seroconverted by the end of the study, $Y_{ik} = 0$ otherwise
+
+$T_k$ is the cluster-level binary treatment assignment
+
+- In BCPP, $T_k = 1$ if a cluster has been assigned to receive CP, and $T_k = 0$ otherwise
+
+$X_{ik}^{(1)}$, $X_{ik}^{(2)}$ denotes each of the two components of the treatment, $T_k$. 
+
+- In BCPP, the Combination Prevention (CP) package included the following:
+
+    1. MC: Male Circumcision (available only for HIV-negative males)
+    2. HTC: HIV Testing and Counseling (available only for HIV-negative individuals)
+    3. ART: Antiretroviral Therapy (available only for HIV-positive individuals)
+    4. PMTCT: Prevention of Mother-to-Child Transmission (available only for HIV-positive females)
+    
+- We are only considering the first two components as the entire treatment package, since the last two apply to HIV-positive individuals only.
+- $X_{ik}^{(1)} = \text{"Yes"}$ if individual $i$ in cluster $k$ was circumcised before or during the study, $X_{ik}^{(1)} = \text{"No"}$ if they are male and not circumcised, and $X_{ik}^{(1)} = \text{"Female"}$ if they are female (three levels are included as to not exclude females)
+- $X_{ik}^{(2)} = 1$ if individual $i$ in cluster $k$ received HTC at enrollment or thereafter, and $X_{ik}^{(2)} = 0$ otherwise
+
+$X_{ik}^{(12)}$ denotes whether individual $i$ in cluster $k$ received the entire treatment
+
+- For males in BCPP, $X_{ik}^{(12)} = X_{ik}^{(1)} \times X_{ik}^{(2)} = 1$ if they received both MC and HTC, $X_{ik}^{(12)} = 0$ otherwise
+- For females in BCPP, $X_{ik}^{(12)} = X_{ik}^{(2)} = 1$ if they received HTC, $X_{ik}^{(12)} = 0$ otherwise
+
+$Z_k^{(1)}$, $Z_k^{(2)}$ is the proportion of indivividuals in village $k$ who received the first component and second component of the treatment, respectively
+
+- For males in BCPP, $Z_k^{(1)} = \sum_{i=1}^{m_k^{(\text{male})}} \frac{X_{ik}^{(1)}}{m_k^{(\text{male})}}$ is the proportion of males in village $k$ who are circumcised before or during the study
+
+- For all individuals in BCPP, $Z_k^{(2)} = \sum_{i=1}^{m_k} \frac{X_{ik}^{(2)}}{m_k}$ is the proportion of all individuals in village $k$ who received HTC
+
+$Z_{ik}^{(12)}$ is the proportion of individuals who received the full treatment
+
+- For males in BCPP, $Z_{ik}^{(12)} = \sum_{i=1}^{m_k^{(\text{male})}} \frac{X_{ik}^{(1)} \times X_{ik}^{(2)}}{m_k^{(\text{male})}}$ is the proportion of males who are both circumcised and received HTC
+- For females in BCPP, $Z_{ik}^{(12)} = Z_{ik}^{(2)} = \sum_{i=1}^{m_k^{(\text{female})}} \frac{X_{ik}^{(2)}}{m_k^{(\text{female})}}$ is the proprtion of females who received HTC
+
+$\mathbf{C}_{ik} = (C_{1k}^{(1)}, ..., C_{m_k k}^{(1)}, C_{1k}^{(2)}, ..., C_{m_k k}^{(2)})$ are the individual level covariates
+
+$\mathbf{V}_k = (V_k^{(1)}, ..., V_k^{(v)})$ are the cluster-level covariates
+
+\newpage
 
 ```{r setup, include = FALSE}
 # Package names
 packages <- c("tidyverse", "lme4", "MASS", "Matrix", "matrixcalc", "latex2exp",
               "ICC", "nlme", "bindata", "gee", "crt2power", "mosaic", "haven",
               "tmvtnorm", "ggplot2", "latex2exp", "reshape2", "gridExtra",
-              "table1")
+              "table1", "broom", "xtable", "logistf")
 
 # Install packages not yet installed
 installed_packages <- packages %in% rownames(installed.packages())
@@ -73,7 +165,7 @@ dat3_renamed <- dat3 %>% rename_with(~ paste0(., "_dat3"), -de_subj_idC)
 ```
 
 
-```{r merging_datasets include = FALSE}
+```{r merging_datasets, include = FALSE}
 # Circumcision in all three datasets
 combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
   full_join(dat3_renamed, by = "de_subj_idC") %>%
@@ -138,7 +230,7 @@ combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
 ```
 
 
-```{r cleaning_data include = FALSE}
+```{r cleaning_data, include = FALSE}
 cleanDat <- combinedDat %>%
   dplyr::select(original_subject_id = subject_ID, 
                 original_cluster_id = community, 
@@ -165,13 +257,13 @@ cleanDat <- combinedDat %>%
   
 ```
 
-# Baseline Characteristics of BCPP Dataset
+# Exploratory Analysis of the BCPP Dataset
 
 ## Characteristics of Treatment Groups
 
-Below shows Table 1 for the baseline characteristics of the BCPP dataset. All proportions are calculated using this dataset (no exclusions). Then, we exclude any individuals who start the study HIV-infected, refused HIV testing, or had missing HIV testing. 
+Below shows Table 1 for the baseline characteristics of the BCPP dataset. All proportions are calculated using this dataset (no exclusions). Then, we exclude any individuals who start the study HIV-infected, refused HIV testing, or had missing HIV testing. We calculate the proportions of the full dataset before removing those who are HIV-infected because they are still considered a cluster-level characteristic that will affect the HIV-uninfected individuals.
 
-```{r creating_table1 echo = FALSE}
+```{r creating_table1, echo = FALSE}
 table1_cleanDat <- table1(~cluster_size + gender + hiv_status_current + 
                             endpoint_coverage_htc + endpoint_coverage_mc + 
                             endpoint_seroconvert | random_arm, data = cleanDat)
@@ -180,11 +272,13 @@ table1_cleanDat
 paste0("Excluded from the study: n = ", nrow(cleanDat) - nrow(filter(cleanDat, hiv_status_current == "HIV-uninfected")))
 ```
 
+\newpage
+
 ## Male Circumcision Characteristics
 
 Below shows more characteristics of male circumcision. 
 
-```{r creating_table1 echo = FALSE}
+```{r creating_table2, echo = FALSE}
 table2_cleanDat <- table1(~ hiv_status_current + 
                             endpoint_coverage_htc + 
                             endpoint_seroconvert | endpoint_coverage_mc, 
@@ -193,12 +287,13 @@ table2_cleanDat <- table1(~ hiv_status_current +
 table2_cleanDat
 ```
 
+\newpage
 
 ## Gender Characteristics
 
 Below shows more characteristics of gender. 
 
-```{r creating_table1 echo = FALSE}
+```{r creating_table3, echo = FALSE}
 table3_cleanDat <- table1(~ hiv_status_current + 
                             endpoint_coverage_htc + 
                             endpoint_seroconvert | gender, 
@@ -207,11 +302,13 @@ table3_cleanDat <- table1(~ hiv_status_current +
 table3_cleanDat
 ```
 
+\newpage
+
 ## Outcome Characteristics
 
 Below shows more characteristics of HIV status at the end of the study. 
 
-```{r creating_table1 echo = FALSE}
+```{r creating_table4, echo = FALSE}
 table4_cleanDat <- table1(~ gender + 
                             endpoint_coverage_mc + 
                             endpoint_coverage_htc | endpoint_seroconvert, 
@@ -220,10 +317,9 @@ table4_cleanDat <- table1(~ gender +
 table4_cleanDat
 ```
 
+## Overall Baseline Characteristics
 
-# Modeling Results
-
-```{r create_model_dat include = FALSE}
+```{r create_model_dat, include = FALSE}
 modelDat <- cleanDat %>%
   # Calculate proportions first
   mutate(T_k = ifelse(random_arm == "Treatment", 1, 
@@ -253,7 +349,7 @@ modelDat <- cleanDat %>%
   mutate(hiv_infected_count = sum(hiv_status_current == "HIV-infected", na.rm = TRUE)) %>%
   ungroup() %>%
   # Treatment related proportions
-  mutate(Z1_k = mc_count/male_count,
+  mutate(Z1_k = mc_count/male_count, # Prop males circumcised
          Z2_k = htc_count/cluster_size,
          Z12_k = full_trt_count/cluster_size) %>%
   # Characteristic related proportions
@@ -262,6 +358,409 @@ modelDat <- cleanDat %>%
                        ifelse(endpoint_seroconvert == "No", 0, NA))) %>%
   # Then filter out people who already have HIV or refused testing
   dplyr::filter(hiv_status_current == "HIV-uninfected")
+```
+
+```{r}
+summaryDat <- modelDat %>%
+  mutate(`Proportion of Males in One's Cluster` = male_count/cluster_size) %>%
+  dplyr::select(`Treatment Group` = random_arm,
+                `Cluster Size` = cluster_size,
+                `Gender` = gender,
+                `HIV Status at Start` = hiv_status_current,
+                `Treatment Component: MC` = endpoint_coverage_mc,
+                `Treatment Component: HTC` = endpoint_coverage_htc,
+                `Proportion of HIV Infected in One's Cluster` = hiv_infected_prop,
+                `Proportion of Males in One's Cluster`,
+                `Proportion of Males Circumcised in One's Cluster` = Z1_k, 
+                `Proportion HTC in One's Cluster` = Z2_k,
+                `Outcome: Seroconvert` = endpoint_seroconvert) 
+
+baseline_table1 <- table1(~ `Cluster Size` + `Gender` +
+                `HIV Status at Start` + `Treatment Component: MC` +
+                `Treatment Component: HTC` +
+                `Outcome: Seroconvert` | `Treatment Group`, 
+                          data = summaryDat)
+
+baseline_table2 <- table1(~ `Proportion of HIV Infected in One's Cluster` +
+                `Proportion of Males in One's Cluster` +
+                `Proportion of Males Circumcised in One's Cluster` +
+                `Proportion HTC in One's Cluster`  | `Treatment Group`, 
+                          data = summaryDat)
+
+
+```
+
+
+\newpage 
+
+# Modeling Results
+
+## Within-Village Spillover
+
+
+\underline{Setup}
+
+- Here, we assume non-adherence at least conditional on measured covariates
+- In this analysis, we include:
+
+    a. Everyone in the treatment group who DID NOT receive *any* part of the treatment ($X_{ik}^{(1)} = "Yes" \text{or} "Female"$ and $X_{ik}^{(2)} = 0$ for $T_k = 1$)
+    b. Everyone in the control group who DID NOT receive *any* part of the treatment ($X_{ik}^{(1)} = "Yes" \text{or} "Female"$ and $X_{ik}^{(2)} = 0$ for $T_k = 0$)
+
+
+\underline{Dataset}
+
+```{r}
+# Only include those in treatment group who DID NOT receive any part of the treatment
+# Only include those in control group who DID NOT receive any part of treatment
+modelDat_SpW <- modelDat %>%
+  filter(X1_ik != "Yes", X2_ik == 0) # Exclude anyone who got any part of the treatment
+```
+
+
+\underline{Summary counts of individuals per treatment group}
+
+```{r, echo = FALSE}
+# Quick summary statistics
+tally(T_k ~ X1_ik, data = modelDat_SpW)
+tally(T_k ~ X2_ik, data = modelDat_SpW)
+tally(Y_ik ~ X1_ik, data = modelDat_SpW)
+tally(Y_ik ~ X2_ik, data = modelDat_SpW)
+```
+
+
+\underline{Spillover Within Intervention Clusters Model}
+
+"SpW" denotes spillover within intervention clusters. This compares participants in intervention villages who received neither relevant intervention component to people in the control villages (who also did not receive any part of the intervention component)
+
+$$logit(Y_{ik}) = \beta_0^{\text{SpW}} + \beta_1^{\text{SpW}}(T_{k})$$
+
+```{r}
+# Spillover Within Intervention Clusters
+model_SpW <- glm(Y_ik ~ T_k,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_SpW) # Exclude those who received full trt
+
+model_SpW_summary <- summary(model_SpW) # Save model summary
+
+beta_SpW_0 <- exp(model_SpW_summary$coefficients[1,1]) # Intercept
+beta_SpW_1 <- exp(model_SpW_summary$coefficients[2,1]) # T_k Coefficient
+
+#model_SpW_summary 
+#tidy(model_SpW, exponentiate = TRUE, conf.int = TRUE) # Print output
+
+tidy_SpW <- tidy(model_SpW, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  rename(
+    Term = term,
+    OR = estimate,
+    SE = std.error,
+    `p-value` = p.value,
+    `95% CI (lower)` = conf.low,
+    `95% CI (upper)` = conf.high
+  )
+tidy_SpW
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_SpW, digits = c(0, 0, 3, 3, 3, 3, 3)), 
+      type = 'latex', include.rownames = FALSE)
+```
+
+
+\underline{Spillover Mediated by Male Circumcision Model}
+
+"SpWM" denotes spillover that is mediated by the village's circumcision (proportion). 
+
+$$logit(Y_{ik}) = \beta_0^{\text{SpWM}} + \beta_1^{\text{SpWM}}(T_{k}) + \beta_2^{\text{SpWM}}(Z_k^{(1)})$$
+
+```{r}
+# Spillover Mediated by Male Circumcision
+model_SpWM <- glm(Y_ik ~ T_k + Z1_k,
+                  family = binomial(link = 'logit'),
+                  data = modelDat_SpW)
+
+model_SpWM_summary <- summary(model_SpWM) # Save model summary
+
+beta_SpWM_0 <- exp(model_SpWM_summary$coefficients[1,1]) # Intercept
+beta_SpWM_1 <- exp(model_SpWM_summary$coefficients[2,1]) # T_k Coefficient
+beta_SpWM_2 <- exp(model_SpWM_summary$coefficients[3,1]) # Z1_k Coefficient
+
+#model_SpWM_summary # Print output
+#tidy(model_SpWM, exponentiate = TRUE, confint = TRUE) # Print output
+
+tidy_SpWM <- tidy(model_SpWM, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  rename(
+    Term = term,
+    OR = estimate,
+    SE = std.error,
+    `p-value` = p.value,
+    `95% CI (lower)` = conf.low,
+    `95% CI (upper)` = conf.high
+  )
+tidy_SpWM
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_SpWM, digits = c(0, 0, 3, 3, 3, 3, 3)), 
+      type = 'latex', include.rownames = FALSE)
+```
+
+
+\underline{Proportion of Within-Intervention Village Spillover Effect Mediated by MC}
+
+Then $\beta_1^{\text{SpWM}} / \beta_2^{\text{SpW}}$ is the proportion of within-intervention village spillover effect mediated by circumcision.
+
+```{r}
+# Proportion of within-intervention village spillover effect mediated by MC
+beta_SpWM_1/beta_SpW_1
+```
+
+```{r}
+# Step 1: Extract beta1 (SpWM and SpW) on log-odds scale
+b1_SpWM <- coef(model_SpWM)["T_k"]
+b1_SpW  <- coef(model_SpW)["T_k"]
+
+# Step 2: Extract their standard errors
+se1_SpWM <- sqrt(vcov(model_SpWM)["T_k", "T_k"])
+se1_SpW  <- sqrt(vcov(model_SpW)["T_k", "T_k"])
+
+# Step 3: Calculate difference on log-odds scale and its SE
+diff_logOR <- b1_SpWM - b1_SpW
+se_diff <- sqrt(se1_SpWM^2 + se1_SpW^2)  # assuming independence
+
+# Step 4: CI on log scale
+lower <- diff_logOR - 1.96 * se_diff
+upper <- diff_logOR + 1.96 * se_diff
+
+# Step 5: Exponentiate everything
+point_estimate <- exp(diff_logOR)
+ci_lower <- exp(lower)
+ci_upper <- exp(upper)
+
+# Output results
+tibble(
+  `Proportion Mediated` = point_estimate,
+  `95% CI Lower` = ci_lower,
+  `95% CI Upper` = ci_upper
+)
+```
+
+
+\newpage
+
+## Individual Effects
+
+\underline{Setup}
+
+- In this analysis, we include:
+
+    a. Males only
+    a. Everyone in the treatment group
+    b. Everyone in the control group
+
+This way, we will look at effects of the intervention assignment on the outcome, and then in the mediation model is where we will account for if they actually received the circumcision component or not.
+
+```{r}
+# Alternative to fix data availability
+  # Include only those who were circumcised in the treatment
+  # Include everyone in the control
+modelDat_Ind <- modelDat %>%
+  filter(C1_ik == 1)
+```
+
+\underline{Summary counts of individuals per treatment group}
+
+```{r, echo = FALSE}
+# Quick summary statistics
+tally(T_k ~ X1_ik, data = modelDat_Ind)
+tally(Y_ik ~ X1_ik, data = modelDat_Ind)
+tally(Y_ik ~ T_k, data = modelDat_Ind)
+```
+
+
+\underline{Individual Effects of Circumcision Model}
+
+"Ind" denotes individual effects, i.e. effects of one's own treatment on their own outcome.
+
+$$logit(Y_{ik}) = \beta_0^{\text{Ind}} + \beta_1^{\text{Ind}}(T_{k})$$
+
+The total individual effect is $\beta_1^{\text{Ind}}$.
+
+```{r}
+# Individual Effects
+model_Ind <- glm(Y_ik ~ T_k,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_Ind)
+
+model_Ind_summary <- summary(model_Ind) # Save model summary
+
+beta_Ind_0 <- exp(model_Ind_summary$coefficients[1,1]) # Intercept
+beta_Ind_1 <- exp(model_Ind_summary$coefficients[2,1]) # T_k Coefficient, 
+                                                       # total Ind effect
+
+#model_Ind_summary # Print summary
+#tidy(model_Ind, exponentiate = TRUE, conf.int = TRUE) # Print output
+
+tidy_Ind <- tidy(model_Ind, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  rename(
+    Term = term,
+    OR = estimate,
+    SE = std.error,
+    `p-value` = p.value,
+    `95% CI (lower)` = conf.low,
+    `95% CI (upper)` = conf.high
+  )
+tidy_Ind
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_Ind, digits = c(0, 0, 3, 3, 3, 3, 3)), 
+      type = 'latex', include.rownames = FALSE)
+```
+
+
+\underline{Individual Mediated Effects of Circumcision Model}
+
+"IndM" denotes individual mediated effects, i.e. effects of one's own treatment to their outcome, mediated by their own mediator.
+$$logit(Y_{ik}) = \beta_0^{\text{IndM}} + \beta_1^{\text{IndM}}(T_{k}) + \beta_2^{\text{IndM}}(X_{ik}^{(1)})$$
+
+The direct individual effect is then $\beta_1^{\text{IndM}}$.
+
+```{r}
+# Individual Mediated Effect
+model_IndM <- glm(Y_ik ~ T_k + X1_ik,
+                  family = binomial(link = 'logit'),
+                  data = modelDat_Ind)
+
+model_IndM_summary <- summary(model_IndM)
+
+beta_IndM_0 <- exp(model_IndM_summary$coefficients[1,1]) # Intercept
+beta_IndM_1 <- exp(model_IndM_summary$coefficients[2,1]) # T_k Coefficient, 
+                                                    # direct individual effect
+beta_IndM_2 <- exp(model_IndM_summary$coefficients[3,1]) # X1_k Coefficient
+
+#model_IndM_summary # Print summary
+#tidy(model_SpW, exponentiate = TRUE, conf.int = TRUE) # Print output
+
+tidy_IndM <- tidy(model_IndM, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  rename(
+    Term = term,
+    OR = estimate,
+    SE = std.error,
+    `p-value` = p.value,
+    `95% CI (lower)` = conf.low,
+    `95% CI (upper)` = conf.high
+  )
+tidy_IndM
+
+table(modelDat_Ind$Y_ik, modelDat_Ind$T_k, modelDat_Ind$X1_ik)
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_IndM, digits = c(0, 0, 3, 3, 3, 3, 3)), type = 'latex')
+```
+
+
+```{r}
+# Using Firth's model instead:
+# Helpful when we have complete or quasi-complete separation
+# It applies a penalty to the likelihood function that 
+# reduces small-sample bias in MLE
+# Naturally prevents infinite estimates when separation occurs
+# It uses Jeffreys invariant prior to modify the score function
+
+model_IndM_firth <- logistf(Y_ik ~ T_k + X1_ik, data = modelDat_Ind)
+
+beta_IndM_0_firth <- exp(model_IndM_firth$coefficients[[1]]) # Intercept
+beta_IndM_1_firth <- exp(model_IndM_firth$coefficients[[2]]) # T_k Coefficient, 
+                                                    # direct individual effect
+beta_IndM_2_firth <- exp(model_IndM_firth$coefficients[[3]]) # X1_k Coefficient
+
+# Pull directly from the model
+coef_table_firth <- model_IndM_firth$coefficients      # log-odds estimates (named vector)
+se_table_firth   <- sqrt(diag(model_IndM_firth$var))   # standard errors
+pval_table_firth <- model_IndM_firth$prob              # p-values
+ci_lower_firth   <- model_IndM_firth$ci.lower          # lower bound on log-odds
+ci_upper_firth   <- model_IndM_firth$ci.upper          # upper bound on log-odds
+
+tidy_IndM_firth <- tibble(
+  Term = names(coef_table_firth),
+  OR = exp(coef_table_firth),
+  SE = se_table_firth,
+  `p-value` = pval_table_firth,
+  `95% CI (lower)` = exp(ci_lower_firth),
+  `95% CI (upper)` = exp(ci_upper_firth)
+)
+tidy_IndM_firth
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_IndM_firth, digits = c(0, 0, 3, 3, 3, 3, 3)), 
+      type = 'latex', include.rownames = FALSE)
+```
+
+\underline{Indirect individual effect}
+
+Then, the indirect individual effect is $\beta_1^{\text{Ind}} - \beta_1^{\text{IndM}}$
+
+```{r}
+beta_Ind_1 - beta_IndM_1 # Indirect individual effect
+
+beta_Ind_1 - beta_IndM_1_firth # Indirect individual effect Firth model
+```
+
+
+\underline{Proportion of individual effect due to circumcision}
+
+The proportion of total individual effect mediated by individual receiving circumcision is $(\beta_1^{\text{Ind}} - \beta_1^{\text{IndM}})/\beta_1^{\text{Ind}}$
+
+```{r}
+(beta_Ind_1 - beta_IndM_1)/beta_Ind_1 # Proportion of individual effect due to circumcision
+
+(beta_Ind_1 - beta_IndM_1_firth)/beta_Ind_1 # Proportion of individual effect due to circumcision Firth
+```
+
+\newpage
+
+## Total Effects
+
+\underline{Intervention village total effect}
+
+"Individual village total effect" = "individual direct effect" + "individual indirect effect + spillover total effect within intervention clusters". This is also equal to the "total individual effect" + "within village spillover", i.e. 
+
+$$\beta_1^{\text{Ind}} + \beta_1^{\text{SpW}}$$
+
+```{r}
+beta_Ind_1 + beta_SpW_1 # Intervention village total effect
+```
+
+
+\underline{Proportion of total effect mediated by male circumcision}
+
+The proportion of total effect mediated by male circumcision is
+
+$$\frac{[(\beta_1^{\text{Ind}} - \beta_1^{\text{IndM}}) + (\beta_1^{\text{SpW}} - \beta_1^{\text{SpWM}})]}{(\beta_1^{\text{Ind}} + \beta_1^{\text{SpW}})}$$
+
+```{r}
+# Proportion of total effect mediated by male circumcision
+((beta_Ind_1 - beta_IndM_1) + (beta_SpW_1 - beta_SpWM_1))/(beta_Ind_1 + beta_SpW_1) 
+# Proportion of total effect mediated by male circumcision firth model
+((beta_Ind_1 - beta_IndM_1_firth) + (beta_SpW_1 - beta_SpWM_1))/(beta_Ind_1 + beta_SpW_1) 
+```
+
+
+\underline{Proportion of intervention village total effect due to spillover within intervention villages}
+
+The proportion of intervention village total effect due to spillover within intervention villages is 
+
+$$\frac{\beta_1^{\text{SpW}}}{(\beta_1^{\text{Ind}} - \beta_1^{\text{SpW}})}$$
+
+```{r}
+# Proportion of intervention village total effect due to spillover within intervention villages
+beta_SpW_1/(beta_Ind_1 - beta_SpW_1)
 ```
 
 
