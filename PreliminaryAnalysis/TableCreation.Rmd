@@ -1,0 +1,32 @@
+---
+title: "Table Creation"
+author: "Melody Owen"
+date: "2025-05-30"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    latex_engine: pdflatex  # or xelatex/lualatex if you're using those
+    includes:
+      in_header: preamble.tex
+geometry: margin=0.5in
+---
+
+
+
+Testing Tables
+
+
+| Model Name | Model equation | Analytic sample | Extra covariates | Estimands |
+| ---------- | -------------- | --------------- | ---------------- | ------------------------- |
+|  | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1 T_k$ | Untreated Individuals | none | Total spillover for untreated people  |
+| **SpW** | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1 T_k$ | Untreated Individuals | none | Total spillover for untreated people  |
+|  | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1 T_k$ | Untreated Individuals | none | Total spillover for untreated people  |
+| ---------- | -------------- | --------------- | ---------------- | ------------------------- |
+| **SpWR** | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1T_k+\beta_2 Z_k^{(1)}$ | Untreated Individuals | village MC coverage | Remaining spillover after MC-coverage path is held fixed |
+| ---------- | -------------- | --------------- | ---------------- | ------------------------- |
+| **Ind** | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1 T_k+\beta_2 Z_k^{(1)}+\beta_3 Z_k^{(2)}$ | Males Only | village MC & HTC coverage | Assignment effect after measured spillover is held fixed (still contains own-uptake + unmeasured spillover) |
+| ---------- | -------------- | --------------- | ---------------- | ------------------------- |
+| **IndD** | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1 T_k+\beta_2X_{ik}^{(1)}+\beta_3 Z_k^{(1)}+\beta_4 Z_k^{(2)}$ | Males Only | own MC $X_{ik}^{(1)}$ + $Z$’s | Controlled-direct effect (paths via own MC **and** measured spillover blocked) |
+| ---------- | -------------- | --------------- | ---------------- | ------------------------- |
+| **Overall** | $\displaystyle \operatorname{logit}(Y_{ik})=\beta_0+\beta_1T_k$ | All HIV-negative participants | none | Total impact of CP village assignment (own uptake + *all* spillover) |

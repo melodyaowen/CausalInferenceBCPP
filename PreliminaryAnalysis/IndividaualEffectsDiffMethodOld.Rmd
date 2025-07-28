@@ -1,0 +1,341 @@
+---
+title: "Untitled"
+output: pdf_document
+date: "2025-07-21"
+---
+
+## Previous Individual Effects Model
+
+### D. Total Individual Effect of Treatment Assignment
+
+"Ind" denotes individual effects, i.e. effects of a male's own treatment assignment on their own outcome. Here, we also block the spillover that exists through the proportion circumcised and proportion who received HTC in the cluster by controlling for it in the model (inclusion of $Z_k^{(1)}$ and $Z_k^{(2)}$ in the model). 
+
+$$logit(Y_{ik}) = \beta_0^{\text{Ind}} + \beta_1^{\text{Ind}}(T_{k}) + \beta_2^{\text{Ind}}(Z_{k}^{(1)}) + \beta_3^{\text{Ind}}(Z_{k}^{(2)})$$
+
+The total individual effect of a male's own treatment assignment on their own outcome is $\beta_1^{\text{Ind}}$, and the corresponding OR is $\exp \left(\beta_1^{\text{Ind}} \right)$.
+
+```{r}
+# Total Individual Effect of Treatment Assignment
+
+# Model not accounting for clustering
+model_Ind <- glm(Y_ik ~ T_k + Z1_k + Z2_k,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_Ind)
+
+# Model accounting for clustering using GLMM
+model_Ind_glmm <- glmer(Y_ik ~ T_k + Z1_k + Z2_k + (1|cluster_id), # exchangeable
+                        data = modelDat_Ind, 
+                        family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_Ind_gee <- geeglm(Y_ik ~ T_k + Z1_k + Z2_k,
+                        family  = binomial(link = "logit"), # logit link
+                        id = cluster_id, # clustering variable
+                        data = modelDat_Ind,
+                        corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_Ind_summary <- summary(model_Ind) # Save model summary
+exp_beta_Ind_0 <- exp(model_Ind_summary$coefficients[1,1]) # Intercept
+exp_beta_Ind_1 <- exp(model_Ind_summary$coefficients[2,1]) # T_k Coefficient, 
+                                                       # total Ind effect
+exp_beta_Ind_3 <- exp(model_Ind_summary$coefficients[3,1]) # Z1 coeff
+exp_beta_Ind_4 <- exp(model_Ind_summary$coefficients[4,1]) # Z2 coeff
+
+tidy_Ind <- broom::tidy(model_Ind, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = c(NA, NA, NA))
+
+# GLMM Model
+model_Ind_summary_glmm <- summary(model_Ind_glmm) # Save model summary
+
+exp_beta_Ind_0_glmm <- exp(model_Ind_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_glmm <- exp(model_Ind_summary_glmm$coefficients[2,1]) # T_k Coefficient, 
+                                                       # total Ind effect
+exp_beta_Ind_3_glmm <- exp(model_Ind_summary_glmm$coefficients[3,1]) # Z1 coeff
+exp_beta_Ind_4_glmm <- exp(model_Ind_summary_glmm$coefficients[4,1]) # Z2 coeff
+
+tidy_Ind_glmm <- broom.mixed::tidy(model_Ind_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = c(round(performance::icc(model_Ind_glmm)$ICC_adjusted[[1]], 3), 
+                 NA, NA))
+
+# GEE Model
+model_Ind_summary_gee <- summary(model_Ind_gee) # Save model summary
+
+exp_beta_Ind_0_gee <- exp(model_Ind_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_gee <- exp(model_Ind_summary_gee$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_3_gee <- exp(model_Ind_summary_gee$coefficients[3,1]) # Z1 coeff
+exp_beta_Ind_4_gee <- exp(model_Ind_summary_gee$coefficients[4,1]) # Z2 coeff
+
+tidy_Ind_gee <- broom::tidy(model_Ind_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = c(round(model_SpW_gee$geese$alpha[[1]], 3), NA, NA))
+
+# Overall Output Table for SpW
+Ind_Model_Table <- rbind(tidy_Ind, tidy_Ind_glmm) %>%
+  rbind(tidy_Ind_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(Ind_Model_Table, 
+             caption = "Total Individual Effects Model Output"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+Since $\exp\left( \beta_1^{\text{Ind}} \right) =$ `r round(exp_beta_Ind_1, 2)`, then the odds of seroconverting for a man in a CP village are `r round(exp_beta_Ind_1, 2)` $\times$ the odds for a man in a control village. This is a `r (1-round(exp_beta_Ind_1, 2))*100`% reduction in the odds. Thus, among men, being in a village randomized to the CP package is associated with substantially lower odds of acquiring HIV during the study.
+
+\newpage
+
+### E. Individual Direct Effects of Treatment Assignment
+
+"IndD" denotes individual direct effects, i.e. effects of a male's own treatment assignment on their own outcome, blocking the path through the "mediator" (circumcision treatment component) by controlling for it in the model. Here, we also block the spillover that exists through the proportion circumcised and proportion who received HTC in the cluster by controlling for it in the model (inclusion of $Z_k^{(1)}$ and $Z_k^{(2)}$ in the model). 
+
+$$logit(Y_{ik}) = \beta_0^{\text{IndD}} + \beta_1^{\text{IndD}}(T_{k}) + \beta_2^{\text{IndD}}(X_{ik}^{(1)}) + \beta_3^{\text{IndD}}(Z_k^{(1)}) + \beta_4^{\text{IndD}}(Z_k^{(2)})$$
+
+The individual direct effect of a male's treatment assignment on their outcome is thus $\beta_1^{\text{IndD}}$, since we are blocking the pathway from the treatment assignment to the outcome that goes through the circumcision component by controlling for it in the model.
+
+The odds ratio of comparing CP-assignemnt vs. control for a male whose own circumcision status is held fixed is $\exp \left( \beta_1^{\text{IndD}}(T_{k}) \right)$.
+
+The odds ratio comparing circumcised vs. not, given village assignment is $\exp \left( \beta_2^{\text{IndD}}(X_{ik}^{(1)}) \right)$.
+
+```{r}
+# Individual Direct Effects of Treatment Assignment MOdels
+
+# Model not accounting for clustering
+model_IndD <- glm(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k,
+                  family = binomial(link = 'logit'),
+                  data = modelDat_Ind)
+
+# Model accounting for clustering using GLMM
+model_IndD_glmm <- glmer(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k + (1|cluster_id), # Uses exchangeable structure
+                        data = modelDat_Ind, 
+                        family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_IndD_gee <- geeglm(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k,
+                        family  = binomial(link = "logit"), # logit link
+                        id = cluster_id, # clustering variable
+                        data = dplyr::select(modelDat_Ind, cluster_id, Y_ik, 
+                                              T_k, X1_ik, Z1_k, Z2_k) %>% drop_na(),
+                        corstr  = "exchangeable") # working correlation
+
+```
+
+
+```{r, include = FALSE}
+# GLM Model
+model_IndD_summary <- summary(model_IndD)
+
+exp_beta_IndD_0 <- exp(model_IndD_summary$coefficients[1,1]) # Intercept
+exp_beta_IndD_1 <- exp(model_IndD_summary$coefficients[2,1]) # T_k Coefficient, 
+                                                    # direct individual effect
+exp_beta_IndD_2 <- exp(model_IndD_summary$coefficients[3,1]) # X1_k Coefficient
+exp_beta_IndD_3 <- exp(model_IndD_summary$coefficients[4,1]) # Z1_k Coefficient
+exp_beta_IndD_4 <- exp(model_IndD_summary$coefficients[5,1]) # Z2_k Coefficient
+
+tidy_IndD <- broom::tidy(model_IndD, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_IndD_summary_glmm <- summary(model_IndD_glmm) # Save model summary
+
+exp_beta_IndD_0_glmm <- exp(model_IndD_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_IndD_1_glmm <- exp(model_IndD_summary_glmm$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2_glmm <- exp(model_IndD_summary_glmm$coefficients[3,1]) # X1_k Coefficient
+exp_beta_IndD_3_glmm <- exp(model_IndD_summary_glmm$coefficients[4,1]) # Z1_k Coefficient
+exp_beta_IndD_4_glmm <- exp(model_IndD_summary_glmm$coefficients[5,1]) # Z2_k Coefficient
+
+tidy_SpW_glmm <- broom.mixed::tidy(model_SpW_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_SpW_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_SpW_summary_gee <- summary(model_SpW_gee) # Save model summary
+
+exp_beta_SpW_0_gee <- exp(model_SpW_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_SpW_1_gee <- exp(model_SpW_summary_gee$coefficients[2,1]) # T_k Coefficient
+
+tidy_SpW_gee <- broom::tidy(model_SpW_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_SpW_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+SpW_Model_Table <- rbind(tidy_SpW, tidy_SpW_glmm) %>%
+  rbind(tidy_SpW_gee)
+```
+
+```{r, results = 'asis', include = FALSE, eval = FALSE}
+print(xtable(tidy_IndD, digits = c(0, 0, 3, 3, 3, 3, 3),
+             caption = "Individual Mediated Effects of Circumcision Model"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
+```{r, echo = FALSE, comment = ""}
+print(tally(T_k ~ Y_ik, data = modelDat_Ind))
+print(tally(X1_ik ~ Y_ik, data = modelDat_Ind)) # try exact logistic regression
+                                         # Could also look at the product method
+print(tally(T_k ~ X1_ik, data = modelDat_Ind))
+```
+
+Because every uncircumcised man in our dataset had zero HIV-seroconversions, the data display complete separation. In other words, one predictor level (“No circumcision”) perfectly predicts the outcome (“did not seroconvert”). Ordinary or exact logistic regression depends on being able to compare many hypothetical re-arrangements of the data in which the pattern is not perfect; when a column or row is all 0’s or all 1’s, those hypothetical tables don’t exist. As a result, the likelihood tries to push the corresponding coefficient toward negative infinity, and the exact algorithm has nothing to sum over, so it simply cannot return an estimate.
+
+Firth’s bias-reduced logistic regression fixes the problem by adding a small penalty to the likelihood. The penalty keeps the estimates finite even when a predictor perfectly separates the outcome, and it also reduces small-sample bias. In practice, Firth’s method produces odds-ratio estimates and profile-likelihood confidence intervals that coincide with exact (conditional) results whenever exact logistic can run, and it remains reliable when exact logistic cannot. Therefore we used the Firth-penalised model for the individual-direct-effect analysis; it is the standard remedy for separation and is widely accepted in epidemiology and biostatistics.
+
+```{r}
+# Using Firth's model instead:
+# Helpful when we have complete or quasi-complete separation
+# It applies a penalty to the likelihood function that 
+# reduces small-sample bias in MLE
+# Naturally prevents infinite estimates when separation occurs
+# It uses Jeffreys invariant prior to modify the score function
+
+model_IndD_firth <- logistf(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k, 
+                            data = modelDat_Ind)
+```
+
+
+```{r, echo = FALSE}
+exp_beta_IndD_0_firth <- exp(model_IndD_firth$coefficients[[1]]) # Intercept
+exp_beta_IndD_1_firth <- exp(model_IndD_firth$coefficients[[2]]) # T_k Coefficient, 
+                                                    # direct individual effect
+exp_beta_IndD_2_firth <- exp(model_IndD_firth$coefficients[[3]]) # X1_ik Coefficient
+
+exp_beta_IndD_3_firth <- exp(model_IndD_firth$coefficients[[4]]) # Z1_k Coefficient
+exp_beta_IndD_4_firth <- exp(model_IndD_firth$coefficients[[5]]) # Z2_k Coefficient
+
+# Pull directly from the model
+coef_table_firth <- model_IndD_firth$coefficients      # log-odds estimates (named vector)
+se_table_firth   <- sqrt(diag(model_IndD_firth$var))   # standard errors
+pval_table_firth <- model_IndD_firth$prob              # p-values
+ci_lower_firth   <- model_IndD_firth$ci.lower          # lower bound on log-odds
+ci_upper_firth   <- model_IndD_firth$ci.upper          # upper bound on log-odds
+
+tidy_IndD_firth <- tibble(
+  Term = names(coef_table_firth),
+  OR = exp(coef_table_firth),
+  SE = se_table_firth,
+  `p-value` = pval_table_firth,
+  `95% CI (lower)` = exp(ci_lower_firth),
+  `95% CI (upper)` = exp(ci_upper_firth)
+)
+#tidy_IndM_firth
+```
+
+```{r, results = 'asis', include = FALSE}
+print(xtable(tidy_IndD_firth, digits = c(0, 0, 3, 3, 3, 3, 3),
+             caption = "Individual Mediated Effects of Circumcision Model (Firth's Model Adjustment)"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+Holding a male's own circumcision status fixed, being in a village randomized to CP is associated with about `r (1-round(exp_beta_IndD_1_firth, 2))*100`% reduction in the odds of seroconversion compared with control villages. This is the individual controlled direct effect of assignment. 
+
+After accounting for village assignment, the model estimates that men who were circumcised have far higher observed odds of seroconversion than uncircumcised men (OR is `r round(exp_beta_IndD_2_firth, 2)`). This very large odds-ratio arises because no seroconversions occurred among the uncircumcised group (complete separation); the Firth penalty keeps the estimate finite but it remains unstable and imprecise. Hence, the direction and size of this effect should be interpreted with caution - it is driven by sparse data rather than clear evidence that circumcision increases risk. 
+
+```{r, include = FALSE}
+mc_Ind_table <- modelDat_Ind %>%
+  dplyr::select(X1_ik, Y_ik) %>%
+  mutate(X1_ik = ifelse(is.na(X1_ik), "Missing", X1_ik),
+         Y_ik = ifelse(is.na(Y_ik), "Missing", Y_ik)) %>%
+  mutate(Y_ik = paste0("Y_ik = ", Y_ik)) %>%
+  mutate(X1_ik = paste0("X1_ik = ", X1_ik)) %>%
+  group_by(X1_ik, Y_ik) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  pivot_wider(names_from = Y_ik, values_from = n) %>%
+  mutate(across(everything(), ~replace_na(.x, 0)))
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(mc_Ind_table,
+             caption = "Counts of HIV Seroconversion (Y) by Male Circumcision (X1)"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+\newpage
+
+### F. Indirect Individual Effect of Treatment Assignment
+
+Then, the controlled indirect OR can be calculated as $\exp\left( \beta_1^{\text{Ind}} - \beta_1^{\text{IndD}} \right)$
+
+```{r}
+exp(log(exp_beta_Ind_1) - log(exp_beta_IndD_1_firth)) # Controlled indirect individual effect
+```
+
+This captures the cluster assignment's effect on a man's seroconversion odds that operates through his own circumcision status (while all other pathways are held constant).
+
+An odds-ratio of `r round(exp(log(exp_beta_Ind_1) - log(exp_beta_IndD_1_firth)), 2)` means that, after we remove the "direct" pathway (OR `r round(exp_beta_IndD_1_firth, 2)`), the remaining pathway that goes via a man's own circumcision increases his odds of seroconversion by roughly `r round((exp(log(exp_beta_Ind_1) - log(exp_beta_IndD_1_firth))-1)*100, 2)`.
+
+Overall, among men, the component of CP assignment that works through circumcision is associated with higher observed odds of HIV acquisition, offsetting some of the strong direct protection of being in a CP village.
+
+Some caveats:
+
+- Since no uncircumcised men seroconverted, the circumcision coefficient (and therefore this ratio) is based on very little information and may be highly imprecise.
+- The sign reversal (indirect pathway harmful while direct pathway protective) likely reflects residual confounding or selection into circumcision rather than a true causal increase in risk from circumcision itself.
+- So 1.54 tells us that, within the current model, the circumcision pathway moves the total effect closer to the null rather than adding to the protection conferred directly by the CP assignment.
+
+### G. Proportion of Individual Effect of Treatment Assignment Mediated by Circumcision
+
+The proportion of total individual effect of a male's treatment assignment, mediated by him receiving circumcision is $\frac{\beta_1^{\text{Ind}} - \beta_1^{\text{IndD}}}{\beta_1^{\text{Ind}}}$
+
+```{r}
+(log(exp_beta_Ind_1) - log(exp_beta_IndD_1_firth))/(log(exp_beta_Ind_1))
+```
+
+From this value, it seems that the mediator (one's own circumcision) works in the opposite direction to the total effect. Circumcision uptake appears to offset about 47% of the benefit that CP villages otherwise confer. 

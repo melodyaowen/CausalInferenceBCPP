@@ -1,0 +1,96 @@
+```{r}
+# Total Within-Cluster Spillover Effect of the Intervention Model
+
+# Model not accounting for clustering
+model_SpW <- glm(Y_ik ~ T_k,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_SpW) # Exclude those who received full trt
+
+# Model accounting for clustering using GLMM
+model_SpW_glmm <- glmer(Y_ik ~ T_k + (1|cluster_id), # Uses exchangeable structure
+                        data = modelDat_SpW, 
+                        family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_SpW_gee <- geeglm(Y_ik ~ T_k,
+                        family  = binomial(link = "logit"), # logit link
+                        id = cluster_id, # clustering variable
+                        data = modelDat_SpW,
+                        corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_SpW_summary <- summary(model_SpW) # Save model summary
+
+exp_beta_SpW_0 <- exp(model_SpW_summary$coefficients[1,1]) # Intercept
+exp_beta_SpW_1 <- exp(model_SpW_summary$coefficients[2,1]) # T_k Coefficient
+
+tidy_SpW <- broom::tidy(model_SpW, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+  # rename(
+  #   Term = term,
+  #   OR = estimate,
+  #   SE = std.error,
+  #   `p-value` = p.value,
+  #   `95% CI (lower)` = conf.low,
+  #   `95% CI (upper)` = conf.high
+  # )
+
+# GLMM Model
+model_SpW_summary_glmm <- summary(model_SpW_glmm) # Save model summary
+
+exp_beta_SpW_0_glmm <- exp(model_SpW_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_SpW_1_glmm <- exp(model_SpW_summary_glmm$coefficients[2,1]) # T_k Coefficient
+
+tidy_SpW_glmm <- broom.mixed::tidy(model_SpW_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_SpW_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_SpW_summary_gee <- summary(model_SpW_gee) # Save model summary
+
+exp_beta_SpW_0_gee <- exp(model_SpW_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_SpW_1_gee <- exp(model_SpW_summary_gee$coefficients[2,1]) # T_k Coefficient
+
+tidy_SpW_gee <- broom::tidy(model_SpW_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_SpW_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+SpW_Model_Table <- rbind(tidy_SpW, tidy_SpW_glmm) %>%
+  rbind(tidy_SpW_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(SpW_Model_Table, 
+             caption = "Spillover Within Intervention Clusters Model Output"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
