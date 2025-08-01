@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.4.7)  31 JUL 2025 10:24
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2020.4.7)  31 JUL 2025 10:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**BCPP_Preliminary_Analysis.tex
-(./BCPP_Preliminary_Analysis.tex
+**Preliminary_Analysis_Alt.tex
+(./Preliminary_Analysis_Alt.tex
 LaTeX2e <2020-02-02> patch level 5
 L3 programming layer <2020-03-06> (/usr/local/texlive/2020/texmf-dist/tex/latex
 /base/article.cls
@@ -483,7 +483,7 @@ Package: xurl 2020/01/24 v 0.09 modify URL breaks
 File: l3backend-pdfmode.def 2020-03-12 L3 backend support: PDF mode
 \l__kernel_color_stack_int=\count295
 \l__pdf_internal_box=\box66
-) (./BCPP_Preliminary_Analysis.aux
+) (./Preliminary_Analysis_Alt.aux
 
 LaTeX Warning: Label `tab:cluster_summary' multiply defined.
 
@@ -491,7 +491,7 @@ LaTeX Warning: Label `tab:cluster_summary' multiply defined.
 LaTeX Warning: Label `tab:cluster_summary' multiply defined.
 
 )
-\openout1 = `BCPP_Preliminary_Analysis.aux'.
+\openout1 = `Preliminary_Analysis_Alt.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 129.
 LaTeX Font Info:    ... okay on input line 129.
@@ -640,7 +640,7 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 131
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (/usr/local/texlive/2020/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
-) (./BCPP_Preliminary_Analysis.toc
+) (./Preliminary_Analysis_Alt.toc
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <10> on input line 2.
 LaTeX Font Info:    External font `lmex10' loaded for size
@@ -649,7 +649,7 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <5> on input line 2.
 )
 \tf@toc=\write4
-\openout4 = `BCPP_Preliminary_Analysis.toc'.
+\openout4 = `Preliminary_Analysis_Alt.toc'.
 
 [1
 
@@ -726,32 +726,32 @@ Overfull \hbox (90.5515pt too wide) in paragraph at lines 1432--1452
 ] [25
 
 ]
-Underfull \vbox (badness 10000) detected at line 1597
+Underfull \vbox (badness 10000) detected at line 1596
  []
 
 
-Underfull \vbox (badness 10000) detected at line 1597
+Underfull \vbox (badness 10000) detected at line 1596
  []
 
-[26] [27] [28] [29] [30] [31]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1995.
-[32]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1995.
-(./BCPP_Preliminary_Analysis.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1995.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 1995.
+[26] [27] [28] [29] [30]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1982.
+[31]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1982.
+(./Preliminary_Analysis_Alt.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1982.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 1982.
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 15164 strings out of 480608
- 221457 string characters out of 5903631
- 540437 words of memory out of 5000000
+ 15163 strings out of 480608
+ 221437 string characters out of 5903631
+ 539891 words of memory out of 5000000
  30569 multiletter control sequences out of 15000+600000
  598464 words of font info for 111 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 41i,9n,42p,1058b,465s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 41i,9n,42p,1057b,465s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2020/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/usr/local/
 texlive/2020/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/local/texlive/2020/
 texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{/usr/local/texlive/2020/texmf-dist/fon
@@ -772,10 +772,10 @@ s/type1/public/lm/lmsy7.pfb></usr/local/texlive/2020/texmf-dist/fonts/type1/pub
 lic/lm/lmtk10.pfb></usr/local/texlive/2020/texmf-dist/fonts/type1/public/lm/lmt
 ko10.pfb></usr/local/texlive/2020/texmf-dist/fonts/type1/public/lm/lmtt10.pfb><
 /usr/local/texlive/2020/texmf-dist/fonts/type1/public/lm/lmtti10.pfb>
-Output written on BCPP_Preliminary_Analysis.pdf (32 pages, 393584 bytes).
+Output written on Preliminary_Analysis_Alt.pdf (31 pages, 392518 bytes).
 PDF statistics:
- 448 PDF objects out of 1000 (max. 8388607)
- 393 compressed objects within 4 object streams
- 116 named destinations out of 1000 (max. 500000)
+ 444 PDF objects out of 1000 (max. 8388607)
+ 390 compressed objects within 4 object streams
+ 115 named destinations out of 1000 (max. 500000)
  10449 words of extra memory for PDF output out of 12000 (max. 10000000)
 

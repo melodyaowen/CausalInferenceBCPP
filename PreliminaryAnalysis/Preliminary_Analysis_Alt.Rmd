@@ -215,17 +215,6 @@ dat2_renamed <- dat2 %>% rename_with(~ paste0(., "_dat2"), -de_subj_idC)
 dat3_renamed <- dat3 %>% rename_with(~ paste0(., "_dat3"), -de_subj_idC)
 ```
 
-```{r}
-combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
-  full_join(dat3_renamed, by = "de_subj_idC") %>%
-  dplyr::select(de_subj_idC, starts_with("random_arm_dat"), 
-                contains("community_dat"),
-                starts_with("Gender_dat"), hiv_status_current_dat1,
-                starts_with("circumcised_dat"), starts_with("circumcision_days"),
-                contains("endpoint_coverage_mc"),
-                contains("endpoint_coverage_htc"), contains("seroconvert")) 
-```
-
 
 ```{r merging_datasets, include = FALSE}
 # Circumcision in all three datasets
@@ -234,8 +223,7 @@ combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
   dplyr::select(de_subj_idC, starts_with("random_arm_dat"), 
                 contains("community_dat"),
                 starts_with("Gender_dat"), hiv_status_current_dat1,
-                starts_with("circumcised_dat"), starts_with("circumcision_days"), 
-                contains("endpoint_coverage_mc"),
+                starts_with("circumcised_dat"), contains("endpoint_coverage_mc"),
                 contains("endpoint_coverage_htc"), contains("seroconvert")) %>%
   mutate(random_arm = ifelse(!is.na(random_arm_dat1), random_arm_dat1,
                              ifelse(!is.na(random_arm_dat2), random_arm_dat2,
@@ -248,7 +236,7 @@ combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
                                    community_dat3))) %>%
   dplyr::select(subject_ID = de_subj_idC, community, gender,
                 random_arm, hiv_status_current = hiv_status_current_dat1,
-                starts_with("circumcised"), starts_with("circumcision_days"),
+                starts_with("circumcised"),
                 contains("endpoint_coverage_mc"), 
                 contains("endpoint_coverage_htc"),
                 contains("seroconvert")) %>%
@@ -267,15 +255,13 @@ combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
   mutate(circumcised_dat3 = ifelse(circumcised_dat2 == "Yes", "Yes",
                                    ifelse(circumcised_dat1 == "Yes", "Yes",
                                           circumcised_dat3))) %>%
-  mutate(across(where(~ !is.numeric(.)), ~ na_if(., ""))) %>%
+  mutate(across(everything(), ~ na_if(., ""))) %>%
   mutate(across(where(is.character), str_trim)) %>%
   mutate(endpoint_coverage_mc_dat1 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat1),
          endpoint_coverage_mc_dat2 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat2),
          endpoint_coverage_mc_dat3 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat3)) %>%
-  mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes" & circumcision_days_dat1 < 0,
-                                       "Began study circumcised", ifelse(circumcised_dat1 == "Yes" & (circumcision_days_dat1 >= 0 | is.na(circumcision_days_dat1)), "Yes", NA))) %>%
-  # mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes",
-  #                                      "Began study circumcised", NA)) %>%
+  mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes",
+                                       "Began study circumcised", NA)) %>%
   mutate(endpoint_coverage_mc = ifelse(gender == "Female", "Female",
                                        endpoint_coverage_mc)) %>%
   mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat3 == "Yes",
@@ -327,7 +313,6 @@ cleanDat <- combinedDat %>%
 ```{r create_model_dat, include = FALSE}
 # ModelDat is the clean dataset but with people excluded
 # Only exclude people who already have HIV or refused testing
-# Also people who don't have the outcome
 modelDat_full <- cleanDat %>%
   # Calculate proportions first
   mutate(T_k = ifelse(random_arm == "Treatment", 1, 
@@ -1610,9 +1595,9 @@ cat("\\end{landscape}\n")
 
 "IndM" denotes individual effects, i.e. effects of a male's own treatment assignment on their own outcome. Here, we use the product method to calculate the direct and indirect effects, with the outcome being $Y_{ik}$, treatment being $T_k$, and mediator being $X_{ik}^{(1)}$, whether or not a male was circumcised.. 
 
-The mediator model regresses the mediator on the exposure and confounders. Here, we block the spillover that exists through the proportion circumcised and proportion who received HTC in the cluster by controlling for it in the model (inclusion of $Z_k^{(1)}$ and $Z_k^{(2)}$ in the model). The abbreviation "IndM" refers to the individual effect mediator model, shown below.
+The mediator model regresses the mediator on the exposure and confounders. Here, we block the spillover that exists through the proportion circumcised and proportion who received HTC in the cluster by controlling for it in the model. The abbreviation "IndM" refers to the individual effect mediator model, shown below.
 
-$$logit(X_{ik}^{(1)}) = \beta_0^{\text{IndM}} + \beta_1^{\text{IndM}}(T_{k}) + \beta_2^{\text{IndM}}(Z_k^{(1)}) + \beta_3^{\text{IndM}}(Z_k^{(2)})$$
+$$logit(X_{ik}^{(1)}) = \beta_0^{\text{IndM}} + \beta_1^{\text{IndM}}(T_{k})$$
 
 ```{r, message = FALSE}
 # Mediator Model for Individual Effect of Treatment Assignment
@@ -1620,7 +1605,7 @@ $$logit(X_{ik}^{(1)}) = \beta_0^{\text{IndM}} + \beta_1^{\text{IndM}}(T_{k}) + \
 # Model not accounting for clustering
 
 fits_IndM <- lapply(imp_list, function(d)
-  glm(X1_ik ~ T_k + Z1_k + Z2_k,
+  glm(X1_ik ~ T_k,
                   family = binomial(link = 'logit'),
                   data = d))
 # model_IndM <- glm(X1_ik ~ T_k + Z1_k + Z2_k,
@@ -1629,7 +1614,7 @@ fits_IndM <- lapply(imp_list, function(d)
 
 # Model accounting for clustering using GLMM
 fits_IndM_glmm <- lapply(imp_list, function(d)
-  glmer(X1_ik ~ T_k + Z1_k + Z2_k + (1|cluster_id), # Uses exchangeable
+  glmer(X1_ik ~ T_k + (1|cluster_id), # Uses exchangeable
                          data = d, 
                          family = binomial(link = "logit")))
 # model_IndM_glmm <- glmer(X1_ik ~ T_k + Z1_k + Z2_k + (1|cluster_id), # Uses exchangeable
@@ -1638,7 +1623,7 @@ fits_IndM_glmm <- lapply(imp_list, function(d)
 
 # Model accounting for clustering using GEE
 fits_IndM_gee <- lapply(imp_list, function(d)
-  geeglm(X1_ik ~ T_k + Z1_k + Z2_k,
+  geeglm(X1_ik ~ T_k,
                          family = binomial(link = "logit"),
                          id = cluster_id,
                          data = d,
@@ -1696,7 +1681,7 @@ pooled_results_IndM <- pool_rubins(fits_IndM) %>%
   mutate(Model = "GLM") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(NA, NA, NA))
+  mutate(`Mean ICC` = c(NA))
 
 # GLMM Results
 icc_IndM_glmm <- sapply(fits_IndM_glmm, function(f){
@@ -1709,7 +1694,7 @@ pooled_results_IndM_glmm <- pool_rubins(fits_IndM_glmm,
   mutate(Model = "GLMM") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(icc_IndM_glmm_mean, NA, NA))
+  mutate(`Mean ICC` = c(icc_IndM_glmm_mean))
 
 # GEE Results
 alpha_IndM_gee <- sapply(fits_IndM_gee, function(f) f$geese$alpha[[1]])
@@ -1722,7 +1707,7 @@ pooled_results_IndM_gee <- pool_rubins(fits_IndM_gee,
   mutate(Model = "GEE") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(alpha_mean_IndM_gee, NA, NA))
+  mutate(`Mean ICC` = c(alpha_mean_IndM_gee))
 
 # Final Results Table
 final_IndM_results_pooled <- rbind(pooled_results_IndM, 
@@ -1738,24 +1723,12 @@ final_IndM_results_pooled <- rbind(pooled_results_IndM,
 # Assign values to variables
 exp_beta_IndM_1 <- exp(filter(final_IndM_results_pooled, 
                           Model == "GLM", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
-exp_beta_IndM_2 <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GLM", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndM_3 <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GLM", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 
 exp_beta_IndM_1_glmm <- exp(filter(final_IndM_results_pooled, 
                           Model == "GLMM", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
-exp_beta_IndM_2_glmm <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GLMM", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndM_3_glmm <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GLMM", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 
 exp_beta_IndM_1_gee <- exp(filter(final_IndM_results_pooled, 
                           Model == "GEE", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
-exp_beta_IndM_2_gee <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GEE", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndM_3_gee <- exp(filter(final_IndM_results_pooled, 
-                          Model == "GEE", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 ```
 
 ```{r, results = 'asis', echo = FALSE}
@@ -1850,7 +1823,7 @@ $$logit(Y_{ik}) = \beta_0^{\text{IndO}} + \beta_1^{\text{IndO}}(T_{k}) + \beta_2
 
 # Model not accounting for clustering
 fits_IndO <- lapply(imp_list, function(d)
-  glm(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k,
+  glm(Y_ik ~ T_k + X1_ik,
                   family = binomial(link = 'logit'),
                   data = d))
 # model_IndO <- glm(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k,
@@ -1859,7 +1832,7 @@ fits_IndO <- lapply(imp_list, function(d)
 
 # Model accounting for clustering using GLMM
 fits_IndO_glmm <- lapply(imp_list, function(d)
-  glmer(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k + (1|cluster_id), # Uses exchangeable
+  glmer(Y_ik ~ T_k + X1_ik + (1|cluster_id), # Uses exchangeable
                          data = d, 
                          family = binomial(link = "logit")))
 # model_IndO_glmm <- glmer(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k + (1|cluster_id), # Uses exchangeable
@@ -1868,7 +1841,7 @@ fits_IndO_glmm <- lapply(imp_list, function(d)
 
 # Model accounting for clustering using GEE
 fits_IndO_gee <- lapply(imp_list, function(d)
-  geeglm(Y_ik ~ T_k + X1_ik + Z1_k + Z2_k,
+  geeglm(Y_ik ~ T_k + X1_ik,
                          family = binomial(link = "logit"),
                          id = cluster_id,
                          data = d,
@@ -1887,7 +1860,7 @@ pooled_results_IndO <- pool_rubins(fits_IndO) %>%
   mutate(Model = "GLM") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(NA, NA, NA, NA))
+  mutate(`Mean ICC` = c(NA, NA))
 
 # GLMM Results
 icc_IndO_glmm <- sapply(fits_IndO_glmm, function(f){
@@ -1900,7 +1873,7 @@ pooled_results_IndO_glmm <- pool_rubins(fits_IndO_glmm,
   mutate(Model = "GLMM") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(icc_IndO_glmm_mean, NA, NA, NA))
+  mutate(`Mean ICC` = c(icc_IndO_glmm_mean, NA))
 
 # GEE Results
 alpha_IndO_gee <- sapply(fits_IndO_gee, function(f) f$geese$alpha[[1]])
@@ -1913,7 +1886,7 @@ pooled_results_IndO_gee <- pool_rubins(fits_IndO_gee,
   mutate(Model = "GEE") %>%
   relocate(Model) %>%
   filter(Term != "(Intercept)") %>%
-  mutate(`Mean ICC` = c(alpha_mean_IndO_gee, NA, NA, NA))
+  mutate(`Mean ICC` = c(alpha_mean_IndO_gee, NA))
 
 # Final Results Table
 final_IndO_results_pooled <- rbind(pooled_results_IndO, 
@@ -1931,28 +1904,16 @@ exp_beta_IndO_1 <- exp(filter(final_IndO_results_pooled,
                           Model == "GLM", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
 exp_beta_IndO_2 <- exp(filter(final_IndO_results_pooled, 
                           Model == "GLM", Term == "X1_ik")$Estimate[[1]]) # X1_ik Coefficient
-exp_beta_IndO_3 <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GLM", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndO_4 <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GLM", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 
 exp_beta_IndO_1_glmm <- exp(filter(final_IndO_results_pooled, 
                           Model == "GLMM", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
 exp_beta_IndO_2_glmm <- exp(filter(final_IndO_results_pooled, 
                           Model == "GLMM", Term == "X1_ik")$Estimate[[1]]) # X1_ik Coefficient
-exp_beta_IndO_3_glmm <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GLMM", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndO_4_glmm <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GLMM", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 
 exp_beta_IndO_1_gee <- exp(filter(final_IndO_results_pooled, 
                           Model == "GEE", Term == "T_k")$Estimate[[1]]) # T_k Coefficient
 exp_beta_IndO_2_gee <- exp(filter(final_IndO_results_pooled, 
                           Model == "GEE", Term == "X1_ik")$Estimate[[1]]) # X1_ik Coefficient
-exp_beta_IndO_3_gee <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GEE", Term == "Z1_k")$Estimate[[1]]) # Z1_k Coefficient
-exp_beta_IndO_4_gee <- exp(filter(final_IndO_results_pooled, 
-                          Model == "GEE", Term == "Z2_k")$Estimate[[1]]) # Z2_k Coefficient
 ```
 
 ```{r, results = 'asis', echo = FALSE}

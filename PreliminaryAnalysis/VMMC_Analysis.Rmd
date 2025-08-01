@@ -1,0 +1,702 @@
+---
+title: "BCPP Preliminary Analysis"
+author: "Melody Owen"
+date: "2025-05-30"
+output:
+  pdf_document:
+    toc_depth: 3
+    latex_engine: pdflatex  # or xelatex/lualatex if you're using those
+    includes:
+      in_header: preamble.tex
+geometry: margin=0.5in
+---
+
+```{r setup, include = FALSE}
+# Package names
+packages <- c("tidyverse", "lme4", "MASS", "Matrix", "matrixcalc", "latex2exp",
+              "ICC", "nlme", "bindata", "gee", "crt2power", "mosaic", "haven",
+              "tmvtnorm", "ggplot2", "latex2exp", "reshape2", "gridExtra",
+              "table1", "broom", "xtable", "logistf", "kableExtra", "geepack",
+              "elrm", "broom", "dplyr", "tibble", "lme4", "broom.mixed",
+              "performance", "mice", "glmnet", "rms")
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+```
+
+
+```{r load_data, include = FALSE}
+# Loading in original datasets
+dat1 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr1_20samp_open.sas7bdat")
+dat2 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr2_20samp_open.sas7bdat")
+dat3 <- read_sas("~/Desktop/3. Causal Inference Mediation/BCPP data/BCPP data/longyr3_20samp_open.sas7bdat")
+```
+
+
+```{r column_names, include = FALSE}
+# Create a dataframe for each set of column names
+names1 <- tibble(colname = sort(colnames(dat1)), dataset = "dat1")
+names2 <- tibble(colname = sort(colnames(dat2)), dataset = "dat2")
+names3 <- tibble(colname = sort(colnames(dat3)), dataset = "dat3")
+
+# Bind and pivot to wide
+all_names <- bind_rows(names1, names2, names3) %>%
+  mutate(present = colname) %>%
+  pivot_wider(names_from = dataset, values_from = present) %>%
+  arrange(colname)
+
+all_names_filtered <- bind_rows(names1, names2, names3) %>%
+  mutate(present = colname) %>%
+  pivot_wider(names_from = dataset, values_from = present) %>%
+  arrange(colname) %>%
+  dplyr::filter(colname %in% c("de_subj_idC", # Subject identifier
+                               "community", # Community identifier
+                               
+                               "random_arm", # Randomization arm (Treatment Assignment)
+                               "gender", # Gender
+                               
+                               # At start of study? Unclear
+                               "hiv_status_current", # Current HIV status
+                               "circumcised", # Male circumcision
+                               
+                               # "Coverage Endpoint"
+                               "endpoint_coverage_htc", # Coverage endpoint: HIV-tested or diagnosed HIV+
+                               "endpoint_coverage_mc", # Coverage endpoint: male circumcision
+                               
+                               
+                               # Outcome
+                               "endpoint_seroconvert") # Incidence endpoint: seroconverted by study completion
+  )
+
+# Keeping subject ID the same name so I can match the data
+dat1_renamed <- dat1 %>% rename_with(~ paste0(., "_dat1"), -de_subj_idC)
+dat2_renamed <- dat2 %>% rename_with(~ paste0(., "_dat2"), -de_subj_idC)
+dat3_renamed <- dat3 %>% rename_with(~ paste0(., "_dat3"), -de_subj_idC)
+```
+
+```{r echo = FALSE}
+combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
+  full_join(dat3_renamed, by = "de_subj_idC") %>%
+  dplyr::select(de_subj_idC, starts_with("random_arm_dat"), 
+                contains("community_dat"),
+                starts_with("Gender_dat"), hiv_status_current_dat1,
+                starts_with("circumcised_dat"), starts_with("circumcision_days"),
+                contains("endpoint_coverage_mc"),
+                contains("endpoint_coverage_htc"), contains("seroconvert")) 
+```
+
+
+```{r merging_datasets, include = FALSE}
+# Circumcision in all three datasets
+combinedDat <- full_join(dat1_renamed, dat2_renamed, by = "de_subj_idC") %>%
+  full_join(dat3_renamed, by = "de_subj_idC") %>%
+  dplyr::select(de_subj_idC, starts_with("random_arm_dat"), 
+                contains("community_dat"),
+                starts_with("Gender_dat"), hiv_status_current_dat1,
+                starts_with("circumcised_dat"), starts_with("circumcision_days"), 
+                contains("endpoint_coverage_mc"),
+                contains("endpoint_coverage_htc"), contains("seroconvert")) %>%
+  mutate(random_arm = ifelse(!is.na(random_arm_dat1), random_arm_dat1,
+                             ifelse(!is.na(random_arm_dat2), random_arm_dat2,
+                                    random_arm_dat3))) %>%
+  mutate(gender = ifelse(!is.na(gender_dat1), gender_dat1,
+                         ifelse(!is.na(gender_dat2), gender_dat2,
+                                gender_dat3))) %>%
+  mutate(community = ifelse(!is.na(community_dat1), community_dat1,
+                            ifelse(!is.na(community_dat2), community_dat2,
+                                   community_dat3))) %>%
+  dplyr::select(subject_ID = de_subj_idC, community, gender,
+                random_arm, hiv_status_current = hiv_status_current_dat1,
+                starts_with("circumcised"), starts_with("circumcision_days"),
+                contains("endpoint_coverage_mc"), 
+                contains("endpoint_coverage_htc"),
+                contains("seroconvert")) %>%
+  mutate(gender = case_when(gender == "F" ~ "Female",
+                            gender == "M" ~ "Male",
+                            TRUE ~ NA_character_
+  )) %>%
+  mutate(circumcised_dat1 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat1),
+         circumcised_dat2 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat2),
+         circumcised_dat3 = ifelse(gender == "Female",
+                                   "Female", circumcised_dat3)) %>%
+  mutate(circumcised_dat2 = ifelse(circumcised_dat1 == "Yes", "Yes",
+                                   circumcised_dat2)) %>%
+  mutate(circumcised_dat3 = ifelse(circumcised_dat2 == "Yes", "Yes",
+                                   ifelse(circumcised_dat1 == "Yes", "Yes",
+                                          circumcised_dat3))) %>%
+  mutate(across(where(~ !is.numeric(.)), ~ na_if(., ""))) %>%
+  mutate(across(where(is.character), str_trim)) %>%
+  mutate(endpoint_coverage_mc_dat1 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat1),
+         endpoint_coverage_mc_dat2 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat2),
+         endpoint_coverage_mc_dat3 = ifelse(gender == "Female", "Female", endpoint_coverage_mc_dat3)) %>%
+  mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes" & circumcision_days_dat1 < 0,
+                                       "Began study circumcised", ifelse(circumcised_dat1 == "Yes" & (circumcision_days_dat1 >= 0 | is.na(circumcision_days_dat1)), "Yes", NA))) %>%
+  # mutate(endpoint_coverage_mc = ifelse(circumcised_dat1 == "Yes",
+  #                                      "Began study circumcised", NA)) %>%
+  mutate(endpoint_coverage_mc = ifelse(gender == "Female", "Female",
+                                       endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat3 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat2 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & endpoint_coverage_mc_dat1 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & circumcised_dat3 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) & circumcised_dat2 == "Yes",
+                                       "Yes", endpoint_coverage_mc)) %>%
+  mutate(endpoint_coverage_mc = ifelse(is.na(endpoint_coverage_mc) &
+                                         rowSums(across(contains("dat"), ~ replace_na(. == "No", FALSE))) > 0 &
+                                         rowSums(across(contains("dat"), ~ replace_na(. == "Yes", FALSE))) == 0,
+                                       "No", endpoint_coverage_mc))
+```
+
+
+```{r cleaning_data, include = FALSE}
+# This dataset is a cleaned version of the original dataset with NO ONE EXCLUDED YET
+cleanDat <- combinedDat %>%
+  dplyr::select(original_subject_id = subject_ID, 
+                original_glmmter_id = community, 
+                random_arm, gender, 
+                hiv_status_current,
+                endpoint_coverage_htc = endpoint_coverage_htc_dat1, 
+                endpoint_coverage_mc, 
+                endpoint_seroconvert = endpoint_seroconvert_dat1) %>%
+  mutate(endpoint_coverage_full = ifelse(gender == "Male" & (endpoint_coverage_mc == "Yes" | endpoint_coverage_mc == "Began study circumcised") & endpoint_coverage_htc == "Yes", "Yes", 
+                         ifelse(gender == "Female" & endpoint_coverage_htc == "Yes", "Yes", "No"))) %>%
+  arrange(original_glmmter_id, original_subject_id) %>%
+  mutate_if(is.character, list(~na_if(., ""))) %>% # change any blanks to NAs
+  rowid_to_column("subject_id") %>%
+  group_by(original_glmmter_id) %>%
+  mutate(cluster_id = cur_group_id()) %>%
+  mutate(subj_glmmter_id = row_number()) %>%
+  ungroup() %>%
+  add_count(cluster_id, name = "cluster_size") %>%
+  relocate(subject_id, subj_glmmter_id, cluster_id, cluster_size) %>%
+  ungroup() %>%
+  dplyr::select(-original_subject_id, -original_glmmter_id) %>%
+  mutate(random_arm = ifelse(random_arm == "Standard of Care", "Control",
+                             ifelse(random_arm == "Intervention", "Treatment", NA))) %>%
+  mutate(endpoint_seroconvert = ifelse(hiv_status_current == "HIV-infected",
+                                       "Began study HIV-infected", endpoint_seroconvert))
+```
+
+```{r create_model_dat, include = FALSE}
+# ModelDat is the clean dataset but with people excluded
+# Only exclude people who already have HIV or refused testing
+# Also people who don't have the outcome
+modelDat_full <- cleanDat %>%
+  # Calculate proportions first
+  mutate(T_k = ifelse(random_arm == "Treatment", 1, 
+                      ifelse(random_arm == "Control", 0, NA))) %>%
+  # 1 if circumcised before or during study, 0 if no, "Female" if female
+  mutate(X1_ik = ifelse(endpoint_coverage_mc == "Yes" | endpoint_coverage_mc == "Began study circumcised", "Yes",
+                        ifelse(endpoint_coverage_mc == "No", "No", endpoint_coverage_mc))) %>%
+  # 1 if HTC yes, 0 if HTC no
+  mutate(X2_ik = ifelse(endpoint_coverage_htc == "Yes", 1,
+                        ifelse(endpoint_coverage_htc == "No", 0, NA))) %>%
+  # 1 if Male, circumcised, and got HTC | 1 if female and got HTC, 0 otherwise
+  mutate(X12_ik = ifelse(gender == "Male" & X1_ik == "Yes" & X2_ik == 1, 1, 
+                         ifelse(gender == "Female" & X2_ik == 1, 1, 0))) %>%
+  # Gender characteristic, 1 if Male, 0 if female
+  mutate(C1_ik = ifelse(gender == "Male", 1, 
+                        ifelse(gender == "Female", 0, NA))) %>%
+  group_by(cluster_id) %>%
+  # Count of all men in each cluster
+  mutate(male_count = sum(gender == "Male", na.rm = TRUE)) %>%
+  # Count of all male circumcised men in each cluster
+  mutate(mc_count = sum(X1_ik == "Yes", na.rm = TRUE)) %>%
+  # Count of those who received HTC in each cluster
+  mutate(htc_count = sum(X2_ik == 1, na.rm = TRUE)) %>%
+  # Count of those who received their full treatment in each cluster
+  mutate(full_trt_count = sum(X12_ik == 1, na.rm = TRUE)) %>%
+  # Count of those who started study HIV positive in each cluster
+  mutate(hiv_infected_count = sum(hiv_status_current == "HIV-infected", na.rm = TRUE)) %>%
+  mutate(hiv_refused_testing_count = sum(hiv_status_current == "Refused HIV testing", na.rm = TRUE)) %>%
+  ungroup() %>%
+  # Treatment related proportions
+  mutate(Z1_k = mc_count/male_count, # Prop males circumcised
+         Z2_k = htc_count/cluster_size,
+         Z12_k = full_trt_count/cluster_size) %>%
+  # Characteristic related proportions
+  mutate(hiv_infected_prop = hiv_infected_count/cluster_size) %>%
+  mutate(hiv_refused_testing_prop = hiv_refused_testing_count/cluster_size) %>%
+  mutate(Y_ik = ifelse(endpoint_seroconvert == "Yes", 1,
+                       ifelse(endpoint_seroconvert == "No", 0, NA)))
+
+# Then filter out people who already have HIV or refused testing
+modelDat <- modelDat_full %>% 
+  dplyr::filter(hiv_status_current == "HIV-uninfected") %>%
+  dplyr::filter(!is.na(Y_ik))
+
+excludedDat <- modelDat_full %>%
+  dplyr::filter(hiv_status_current != "HIV-uninfected" | is.na(hiv_status_current) | is.na(Y_ik))
+```
+
+
+```{r echo = FALSE}
+vmmcDat <- modelDat %>%
+  mutate(VMMC = ifelse(endpoint_coverage_mc == "Yes", "Yes", 
+                       ifelse(endpoint_coverage_mc %in% c("Began study circumcised", "No"), "No",
+                              ifelse(endpoint_coverage_mc == "Female", "Female", NA))))
+```
+
+# Frequency Table
+
+```{r}
+tally(Y_ik ~ VMMC, data = vmmcDat) # For all individuals
+tally(Y_ik ~ VMMC, data = filter(vmmcDat, gender == "Male"))
+tally(Y_ik ~ gender, data = vmmcDat)
+```
+
+# Modeling Y ~ VMMC
+
+Include men only in the model.
+
+$$logit(Y_{ik}) = \beta_0 + \beta_1 \times \text{VMMC}$$
+
+```{r echo = FALSE}
+# Models for Y ~ VMMC
+
+# Model not accounting for clustering
+model_y_vmmc <- glm(Y_ik ~ VMMC,
+                    family = binomial(link = 'logit'),
+                    data = filter(vmmcDat, gender == "Male"))
+
+# Model accounting for clustering using GLMM
+model_y_vmmc_glmm <- glmer(Y_ik ~ VMMC + (1|cluster_id), # Uses exchangeable structure
+                           data = filter(vmmcDat, gender == "Male"), 
+                           family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_y_vmmc_gee <- geeglm(Y_ik ~ VMMC,
+                           family = binomial(link = "logit"), # logit link
+                           id = cluster_id, # clustering variable
+                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_y_vmmc_summary <- summary(model_y_vmmc) # Save model summary
+
+tidy_y_vmmc <- broom::tidy(model_y_vmmc, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_y_vmmc_summary_glmm <- summary(model_y_vmmc_glmm) # Save model summary
+
+tidy_y_vmmc_glmm <- broom.mixed::tidy(model_y_vmmc_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_y_vmmc_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_y_vmmc_summary_gee <- summary(model_y_vmmc_gee) # Save model summary
+
+tidy_y_vmmc_gee <- broom::tidy(model_y_vmmc_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_y_vmmc_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+y_vmmc_Model_Table <- rbind(tidy_y_vmmc, tidy_y_vmmc_glmm) %>%
+  rbind(tidy_y_vmmc_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(y_vmmc_Model_Table, 
+             caption = "Model Summary for Y Regressed on VMMC"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+\newpage
+
+# Modeling Y ~ T + VMMC
+
+Include men only in the model.
+
+$$logit(Y_{ik}) = \beta_0 + \beta_1 \times \text{VMMC} + \beta_2 \times T_k$$
+
+```{r echo = FALSE}
+# Models for Y ~ VMMC + T_k
+
+# Model not accounting for clustering
+model_y_t_vmmc <- glm(Y_ik ~ VMMC + T_k,
+                    family = binomial(link = 'logit'),
+                    data = filter(vmmcDat, gender == "Male"))
+
+# Model accounting for clustering using GLMM
+model_y_t_vmmc_glmm <- glmer(Y_ik ~ VMMC + T_k + (1|cluster_id), # Uses exchangeable structure
+                           data = filter(vmmcDat, gender == "Male"), 
+                           family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_y_t_vmmc_gee <- geeglm(Y_ik ~ VMMC + T_k,
+                           family = binomial(link = "logit"), # logit link
+                           id = cluster_id, # clustering variable
+                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_y_t_vmmc_summary <- summary(model_y_t_vmmc) # Save model summary
+
+tidy_y_t_vmmc <- broom::tidy(model_y_t_vmmc, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_y_t_vmmc_summary_glmm <- summary(model_y_t_vmmc_glmm) # Save model summary
+
+tidy_y_t_vmmc_glmm <- broom.mixed::tidy(model_y_t_vmmc_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_y_t_vmmc_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_y_t_vmmc_summary_gee <- summary(model_y_t_vmmc_gee) # Save model summary
+
+tidy_y_t_vmmc_gee <- broom::tidy(model_y_t_vmmc_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = abs(round(model_y_t_vmmc_gee$geese$alpha[[1]], 3)))
+
+# Overall Output Table for SpW
+y_t_vmmc_Model_Table <- rbind(tidy_y_t_vmmc, tidy_y_t_vmmc_glmm) %>%
+  rbind(tidy_y_t_vmmc_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(y_t_vmmc_Model_Table, 
+             caption = "Model Summary for Y Regressed on VMMC + T"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
+
+# Modeling Y ~ Z_1
+
+Include men only in the model.
+
+$$logit(Y_{ik}) = \beta_0 + \beta_1 \times Z_k^{(1)}$$
+
+```{r echo = FALSE}
+# Models for Y ~ Z1
+
+# Model not accounting for clustering
+model_y_z1 <- glm(Y_ik ~ Z1_k,
+                    family = binomial(link = 'logit'),
+                    data = filter(vmmcDat, gender == "Male"))
+
+# Model accounting for clustering using GLMM
+model_y_z1_glmm <- glmer(Y_ik ~ Z1_k + (1|cluster_id), # Uses exchangeable structure
+                           data = filter(vmmcDat, gender == "Male"), 
+                           family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_y_z1_gee <- geeglm(Y_ik ~ Z1_k,
+                           family = binomial(link = "logit"), # logit link
+                           id = cluster_id, # clustering variable
+                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_y_z1_summary <- summary(model_y_z1) # Save model summary
+
+tidy_y_z1 <- broom::tidy(model_y_z1, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_y_z1_summary_glmm <- summary(model_y_z1_glmm) # Save model summary
+
+tidy_y_z1_glmm <- broom.mixed::tidy(model_y_z1_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_y_z1_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_y_z1_summary_gee <- summary(model_y_z1_gee) # Save model summary
+
+tidy_y_z1_gee <- broom::tidy(model_y_z1_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_y_z1_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+y_z1_Model_Table <- rbind(tidy_y_z1, tidy_y_z1_glmm) %>%
+  rbind(tidy_y_z1_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(y_z1_Model_Table, 
+             caption = "Model Summary for Y Regressed on Z1"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+\newpage
+
+
+# Modeling Y ~ Z_1 + T_k
+
+Include men only in the model.
+
+$$logit(Y_{ik}) = \beta_0 + \beta_1 \times Z_k^{(1)} + \beta_2 \times T_k$$
+
+```{r echo = FALSE}
+# Models for Y ~ Z1
+
+# Model not accounting for clustering
+model_y_z1_t <- glm(Y_ik ~ Z1_k + T_k,
+                    family = binomial(link = 'logit'),
+                    data = filter(vmmcDat, gender == "Male"))
+
+# Model accounting for clustering using GLMM
+model_y_z1_t_glmm <- glmer(Y_ik ~ Z1_k + T_k + (1|cluster_id), # Uses exchangeable structure
+                           data = filter(vmmcDat, gender == "Male"), 
+                           family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_y_z1_t_gee <- geeglm(Y_ik ~ Z1_k + T_k,
+                           family = binomial(link = "logit"), # logit link
+                           id = cluster_id, # clustering variable
+                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_y_z1_t_summary <- summary(model_y_z1_t) # Save model summary
+
+tidy_y_z1_t <- broom::tidy(model_y_z1_t, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_y_z1_t_summary_glmm <- summary(model_y_z1_t_glmm) # Save model summary
+
+tidy_y_z1_t_glmm <- broom.mixed::tidy(model_y_z1_t_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_y_z1_t_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_y_z1_t_summary_gee <- summary(model_y_z1_t_gee) # Save model summary
+
+tidy_y_z1_t_gee <- broom::tidy(model_y_z1_t_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_y_z1_t_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+y_z1_t_Model_Table <- rbind(tidy_y_z1_t, tidy_y_z1_t_glmm) %>%
+  rbind(tidy_y_z1_t_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(y_z1_t_Model_Table, 
+             caption = "Model Summary for Y Regressed on Z1 + T"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
+# Modeling Y ~ T_k
+
+Include men only in the model.
+
+$$logit(Y_{ik}) = \beta_0 + \beta_1 \times T_k$$
+
+```{r echo = FALSE}
+# Models for Y ~ T
+
+# Model not accounting for clustering
+model_y_t <- glm(Y_ik ~ T_k,
+                    family = binomial(link = 'logit'),
+                    data = filter(vmmcDat, gender == "Male"))
+
+# Model accounting for clustering using GLMM
+model_y_t_glmm <- glmer(Y_ik ~ T_k + (1|cluster_id), # Uses exchangeable structure
+                           data = filter(vmmcDat, gender == "Male"), 
+                           family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_y_t_gee <- geeglm(Y_ik ~ T_k,
+                           family = binomial(link = "logit"), # logit link
+                           id = cluster_id, # clustering variable
+                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           corstr  = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_y_t_summary <- summary(model_y_t) # Save model summary
+
+tidy_y_t <- broom::tidy(model_y_t, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_y_t_summary_glmm <- summary(model_y_t_glmm) # Save model summary
+
+tidy_y_t_glmm <- broom.mixed::tidy(model_y_t_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_y_t_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_y_t_summary_gee <- summary(model_y_t_gee) # Save model summary
+
+tidy_y_t_gee <- broom::tidy(model_y_t_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_y_t_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+y_t_Model_Table <- rbind(tidy_y_t, tidy_y_t_glmm) %>%
+  rbind(tidy_y_t_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(y_t_Model_Table, 
+             caption = "Model Summary for Y Regressed on Z1 + T"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
+
+
+
+
