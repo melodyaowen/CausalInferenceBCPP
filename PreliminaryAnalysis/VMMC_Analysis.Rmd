@@ -209,11 +209,16 @@ modelDat_full <- cleanDat %>%
   # Gender characteristic, 1 if Male, 0 if female
   mutate(C1_ik = ifelse(gender == "Male", 1, 
                         ifelse(gender == "Female", 0, NA))) %>%
+  mutate(X1_ik_vmmc = ifelse(endpoint_coverage_mc == "Yes", "Yes", 
+                       ifelse(endpoint_coverage_mc %in% c("Began study circumcised", "No"), "No",
+                              ifelse(endpoint_coverage_mc == "Female", "Female", NA)))) %>%
   group_by(cluster_id) %>%
   # Count of all men in each cluster
   mutate(male_count = sum(gender == "Male", na.rm = TRUE)) %>%
   # Count of all male circumcised men in each cluster
   mutate(mc_count = sum(X1_ik == "Yes", na.rm = TRUE)) %>%
+  # Count of all male VMMC in each cluster
+  mutate(vmmc_count = sum(X1_ik_vmmc == "Yes", na.rm = TRUE)) %>%
   # Count of those who received HTC in each cluster
   mutate(htc_count = sum(X2_ik == 1, na.rm = TRUE)) %>%
   # Count of those who received their full treatment in each cluster
@@ -224,6 +229,7 @@ modelDat_full <- cleanDat %>%
   ungroup() %>%
   # Treatment related proportions
   mutate(Z1_k = mc_count/male_count, # Prop males circumcised
+         Z1_k_vmmc = vmmc_count/male_count, # Prop males VMMC
          Z2_k = htc_count/cluster_size,
          Z12_k = full_trt_count/cluster_size) %>%
   # Characteristic related proportions
@@ -243,18 +249,21 @@ excludedDat <- modelDat_full %>%
 
 
 ```{r echo = FALSE}
-vmmcDat <- modelDat %>%
-  mutate(VMMC = ifelse(endpoint_coverage_mc == "Yes", "Yes", 
-                       ifelse(endpoint_coverage_mc %in% c("Began study circumcised", "No"), "No",
-                              ifelse(endpoint_coverage_mc == "Female", "Female", NA))))
+vmmcModelDat <- modelDat %>%
+  filter(gender == "Male") %>%
+  filter(!is.na(X1_ik_vmmc))
 ```
 
-# Frequency Table
+# Frequency Tables
 
-```{r}
-tally(Y_ik ~ VMMC, data = vmmcDat) # For all individuals
-tally(Y_ik ~ VMMC, data = filter(vmmcDat, gender == "Male"))
-tally(Y_ik ~ gender, data = vmmcDat)
+There are `r nrow(filter(vmmcModelDat, X1_ik_vmmc == "Yes"))` (`r round(nrow(filter(vmmcModelDat, X1_ik_vmmc == "Yes"))/nrow(vmmcModelDat), 2)*100`%) men who are VMMC, and there are `r nrow(filter(vmmcModelDat, X1_ik == "Yes"))` (`r round(nrow(filter(vmmcModelDat, X1_ik == "Yes"))/nrow(vmmcModelDat), 2)*100`%) men who are circumcised (but not necessarily VMMC). There are `r nrow(filter(modelDat, is.na(X1_ik_vmmc)))` individuals who have a missing value for VMMC status, and these observations are excluded in the analysis.
+
+Frequency tables for when we keep in individuals who got circumcised before the study (they are counted as VMMC = No).
+
+```{r comment = ""}
+tally(Y_ik ~ X1_ik_vmmc, data = modelDat) # For all individuals
+tally(Y_ik ~ X1_ik_vmmc, data = vmmcModelDat)
+tally(Y_ik ~ gender, data = vmmcModelDat)
 ```
 
 # Modeling Y ~ VMMC
@@ -269,18 +278,18 @@ $$logit(Y_{ik}) = \beta_0 + \beta_1 \times \text{VMMC}$$
 # Model not accounting for clustering
 model_y_vmmc <- glm(Y_ik ~ VMMC,
                     family = binomial(link = 'logit'),
-                    data = filter(vmmcDat, gender == "Male"))
+                    data = vmmcDat_model)
 
 # Model accounting for clustering using GLMM
 model_y_vmmc_glmm <- glmer(Y_ik ~ VMMC + (1|cluster_id), # Uses exchangeable structure
-                           data = filter(vmmcDat, gender == "Male"), 
+                           data = vmmcDat_model, 
                            family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
 model_y_vmmc_gee <- geeglm(Y_ik ~ VMMC,
                            family = binomial(link = "logit"), # logit link
                            id = cluster_id, # clustering variable
-                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           data = filter(vmmcDat_model, !is.na(VMMC)),
                            corstr  = "exchangeable") # working correlation
 ```
 
@@ -357,18 +366,18 @@ $$logit(Y_{ik}) = \beta_0 + \beta_1 \times \text{VMMC} + \beta_2 \times T_k$$
 # Model not accounting for clustering
 model_y_t_vmmc <- glm(Y_ik ~ VMMC + T_k,
                     family = binomial(link = 'logit'),
-                    data = filter(vmmcDat, gender == "Male"))
+                    data = vmmcDat_model)
 
 # Model accounting for clustering using GLMM
 model_y_t_vmmc_glmm <- glmer(Y_ik ~ VMMC + T_k + (1|cluster_id), # Uses exchangeable structure
-                           data = filter(vmmcDat, gender == "Male"), 
+                           data = vmmcDat_model, 
                            family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
 model_y_t_vmmc_gee <- geeglm(Y_ik ~ VMMC + T_k,
                            family = binomial(link = "logit"), # logit link
                            id = cluster_id, # clustering variable
-                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           data = filter(vmmcDat_model, !is.na(VMMC)),
                            corstr  = "exchangeable") # working correlation
 ```
 
@@ -445,18 +454,18 @@ $$logit(Y_{ik}) = \beta_0 + \beta_1 \times Z_k^{(1)}$$
 # Model not accounting for clustering
 model_y_z1 <- glm(Y_ik ~ Z1_k,
                     family = binomial(link = 'logit'),
-                    data = filter(vmmcDat, gender == "Male"))
+                    data = vmmcDat_model)
 
 # Model accounting for clustering using GLMM
 model_y_z1_glmm <- glmer(Y_ik ~ Z1_k + (1|cluster_id), # Uses exchangeable structure
-                           data = filter(vmmcDat, gender == "Male"), 
+                           data = vmmcDat_model, 
                            family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
 model_y_z1_gee <- geeglm(Y_ik ~ Z1_k,
                            family = binomial(link = "logit"), # logit link
                            id = cluster_id, # clustering variable
-                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           data = filter(vmmcDat_model, !is.na(VMMC)),
                            corstr  = "exchangeable") # working correlation
 ```
 
@@ -534,18 +543,18 @@ $$logit(Y_{ik}) = \beta_0 + \beta_1 \times Z_k^{(1)} + \beta_2 \times T_k$$
 # Model not accounting for clustering
 model_y_z1_t <- glm(Y_ik ~ Z1_k + T_k,
                     family = binomial(link = 'logit'),
-                    data = filter(vmmcDat, gender == "Male"))
+                    data = vmmcDat_model)
 
 # Model accounting for clustering using GLMM
 model_y_z1_t_glmm <- glmer(Y_ik ~ Z1_k + T_k + (1|cluster_id), # Uses exchangeable structure
-                           data = filter(vmmcDat, gender == "Male"), 
+                           data = vmmcDat_model, 
                            family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
 model_y_z1_t_gee <- geeglm(Y_ik ~ Z1_k + T_k,
                            family = binomial(link = "logit"), # logit link
                            id = cluster_id, # clustering variable
-                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           data = filter(vmmcDat_model, !is.na(VMMC)),
                            corstr  = "exchangeable") # working correlation
 ```
 
@@ -621,18 +630,18 @@ $$logit(Y_{ik}) = \beta_0 + \beta_1 \times T_k$$
 # Model not accounting for clustering
 model_y_t <- glm(Y_ik ~ T_k,
                     family = binomial(link = 'logit'),
-                    data = filter(vmmcDat, gender == "Male"))
+                    data = vmmcDat_model)
 
 # Model accounting for clustering using GLMM
 model_y_t_glmm <- glmer(Y_ik ~ T_k + (1|cluster_id), # Uses exchangeable structure
-                           data = filter(vmmcDat, gender == "Male"), 
+                           data = vmmcDat_model, 
                            family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
 model_y_t_gee <- geeglm(Y_ik ~ T_k,
                            family = binomial(link = "logit"), # logit link
                            id = cluster_id, # clustering variable
-                           data = filter(vmmcDat, gender == "Male", !is.na(VMMC)),
+                           data = filter(vmmcDat_model, !is.na(VMMC)),
                            corstr  = "exchangeable") # working correlation
 ```
 
