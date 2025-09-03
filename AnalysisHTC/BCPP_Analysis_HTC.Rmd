@@ -1,5 +1,5 @@
 ---
-title: "BCPP Updated Analysis"
+title: "BCPP HTC Analysis"
 author: "Melody Owen"
 date: "2025-08-01"
 output:
@@ -11,143 +11,6 @@ output:
       in_header: preamble.tex
 geometry: margin=0.5in
 ---
-
-\newpage
-
-# OVERVIEW
-
-## The Botswana Combination Prevention Project (BCPP)
-
-### Motivation
-
-- \underline{Goal}: The primary goal of BCPP was to determine whether implementation of combination prevention package (CP) can significantly reduce population-level, cumulative HIV incidence
-
-- \underline{Population}: Individuals in Botswana aged 16-64 years
-
-- \underline{Timeline}: Study length was approximately 3 years
-
-- \underline{Design}: 30 communities were selected and matched into pairs based on community characteristics thought to be associated with HIV incidence
-
-### Treatment in BCPP
-
-The Combination Prevention (CP) prevention package included the following four components:
-
-1. \underline{VMMC}: Voluntary Medical Male Circumcision (only for HIV-negative males)
-
-2. \underline{HTC}: HIV Testing and Counseling (only for HIV-negative individuals)
-
-3. \underline{ART}: Antiretroviral Therapy (only for HIV-positive individuals)
-
-4. \underline{PMTCT}: Prevention of mother-to-child transmission (only for pregnant HIV-positive females)
-
-Clusters (30 communities) were randomized to either:
-
-- \underline{Treatment}: CP Package
-
-- \underline{Control}: Standard of Care
-
-Our analysis examines the impact of CP for HIV-negative individuals, so we consider the "entire" package components 1 and 2 only.
-
-\newpage
-
-## Terminology
-
-\underline{Individual Effects}: Refers to an effect of one's own input on their own outcome
-
-\underline{Spillover Effects}: Refers to an effect of others' inputs on one's outcome; "within-cluster spillover" refers to spillover between individuals in the same cluster
-
-\underline{Direct Effects}: Refers to an effect pathway that links directly from an input to an output with nothing else on the pathway
-
-\underline{Indirect Effects}: Refers to an effect pathway that links indirectly from an input to an output through a node (mediator) on the pathway \newline
-
-With these, we can define the following:
-
-\underline{Individual Effects}
-
-  - **Individual Direct Effect**: Path from one's own input to their own outcome with no other nodes on the pathway
-  - **Individual Indirect Effect**: Path from one's own input to their own outcome through a node (mediator) on the pathway
-  - **Total Individual Effect**: Total effect of one's input on their outcome through all pathways (Individual Direct + Individual Indirect)
-
-\underline{Spillover Effects}
-
-  - **Spillover Direct Effect**: Path from others' inputs to one's outcome with no other nodes on the pathway
-  - **Spillover Indirect Effect**: Path from others' inputs to one's outcome through a node (mediator) on the pathway
-  - **Total Spillover Effect**: Total effect of other's inputs on one's outcome through all pathways (Spillover Direct + Spillover Indirect)
-
-\underline{Overall Effects}
-  
-  - **Overall Effect**: Total Individual Effect + Total Spillover Effect
-
-## Questions of Interest
-
-1. What is the direct individual effect of the CP intervention on HIV incidence?
-
-2. To what extent is the total individual effect mediated by Voluntary Male Medical Circumcision (VMMC)?
-
-3. What is the direct spillover effect of the CP intervention on HIV incidence?
-
-4. To what extent is the total spillover effect mediated by VMMC? 
-
-5. What is the overall effect of CP on HIV incidence? ("overall" includes both spillover and individual totals)
-
-6. To what extent is the overall effect mediated by VMMC? 
-
-\newpage
-
-# NOTATION
-
-$K$ is the total number of villages in the study, indexed as $k = 1,...,K$
-
-$m_k$ is the total number of individuals in cluster $k$, indexed as $i = 1,...,m_k$
-
-- $m_k^{(\text{male})}$ are the total number of males in cluster $k$
-- $m_k^{(\text{female})}$ are the total number of females in cluster $k$
-    
-$Y_{ik}$ is the outcome of subject $i$ in cluster $k$, and is binary
-
-- In BCPP, $Y_{ik} = 1$ if a subject seroconverted by the end of the study, $Y_{ik} = 0$ otherwise
-
-$T_k$ is the cluster-level binary treatment assignment
-
-- In BCPP, $T_k = 1$ if a cluster has been assigned to receive CP, and $T_k = 0$ otherwise
-
-$X_{ik}^{(1)}$, $X_{ik}^{(2)}$ denotes each of the two components of the treatment, $T_k$. 
-
-- In BCPP, the Combination Prevention (CP) package included the following:
-
-    1. MC: Male Circumcision (available only for HIV-negative males)
-    2. HTC: HIV Testing and Counseling (available only for HIV-negative individuals)
-    3. ART: Antiretroviral Therapy (available only for HIV-positive individuals)
-    4. PMTCT: Prevention of Mother-to-Child Transmission (available only for HIV-positive females)
-    
-- We are only considering the first two components as the entire treatment package, since the last two apply to HIV-positive individuals only.
-- $X_{ik}^{(1)}$ denotes any type of male circumcision (MC); $X_{ik}^{(1)} = \text{"Yes"}$ if individual $i$ in cluster $k$ was circumcised before or during the study, $X_{ik}^{(1)} = \text{"No"}$ if they are male and not circumcised, and $X_{ik}^{(1)} = \text{"Female"}$ if they are female (three levels are included as to not exclude females)
-- $X_{ik}^{(1, \text{VMMC})}$ denotes voluntary medical male circumcision (VMMC); $X_{ik}^{(1)} = \text{"Yes"}$ if individual $i$ in cluster $k$ was circumcised, $X_{ik}^{(1)} = \text{"No"}$ if they are male and not circumcised or circumcised before the study, and $X_{ik}^{(1)} = \text{"Female"}$ if they are female (three levels are included as to not exclude females)
-- $X_{ik}^{(2)} = 1$ if individual $i$ in cluster $k$ received HTC at enrollment or thereafter, and $X_{ik}^{(2)} = 0$ otherwise
-
-$X_{ik}^{(12)}$ denotes whether individual $i$ in cluster $k$ received the entire treatment
-
-- For males in BCPP, $X_{ik}^{(12)} = X_{ik}^{(1)} \times X_{ik}^{(2)} = 1$ if they received both MC and HTC, $X_{ik}^{(12)} = 0$ otherwise
-- For females in BCPP, $X_{ik}^{(12)} = X_{ik}^{(2)} = 1$ if they received HTC, $X_{ik}^{(12)} = 0$ otherwise
-
-$Z_k^{(1)}$, $Z_k^{(2)}$ is the proportion of individuals in village $k$ who received the first component and second component of the treatment, respectively
-
-- For males in BCPP, $Z_k^{(1)} = \sum_{i=1}^{m_k^{(\text{male})}} \frac{X_{ik}^{(1)}}{m_k^{(\text{male})}}$ is the proportion of males in village $k$ who are circumcised before or during the study
-
-- For males in BCPP, $Z_k^{(1, \text{VMMC})} = \sum_{i=1}^{m_k^{(\text{male})}} \frac{X_{ik}^{(1, \text{VMMC})}}{m_k^{(\text{male})}}$ is the proportion of males in village $k$ who have received VMMC during the study
-
-- For all individuals in BCPP, $Z_k^{(2)} = \sum_{i=1}^{m_k} \frac{X_{ik}^{(2)}}{m_k}$ is the proportion of all individuals in village $k$ who received HTC
-
-$Z_{ik}^{(12)}$ is the proportion of individuals who received the full treatment
-
-- For males in BCPP, $Z_{ik}^{(12)} = \sum_{i=1}^{m_k^{(\text{male})}} \frac{X_{ik}^{(1)} \times X_{ik}^{(2)}}{m_k^{(\text{male})}}$ is the proportion of males who are both circumcised and received HTC
-- For females in BCPP, $Z_{ik}^{(12)} = Z_{ik}^{(2)} = \sum_{i=1}^{m_k^{(\text{female})}} \frac{X_{ik}^{(2)}}{m_k^{(\text{female})}}$ is the proprtion of females who received HTC
-
-$\mathbf{C}_{ik} = (C_{1k}^{(1)}, ..., C_{m_k k}^{(1)}, C_{1k}^{(2)}, ..., C_{m_k k}^{(2)})$ are the individual level covariates
-
-$\mathbf{V}_k = (V_k^{(1)}, ..., V_k^{(v)})$ are the cluster-level covariates
-
-\newpage
 
 ```{r setup, include = FALSE}
 # Package names
@@ -772,41 +635,64 @@ cat("\\end{landscape}\n")
 \newpage
 
 
-## VMMC vs. MC
+## HTC Counts
 
 ```{r, eval = FALSE}
-mc_order <- c("Yes", "No", "Female", "Missing")
+htc_order <- c("Yes", "No", "Missing")
 
-mc_table <- modelDat %>%
-  dplyr::select(Y_ik, X1_ik) %>%
-  mutate(X1_ik = ifelse(is.na(X1_ik), "Missing", X1_ik)) %>%
-  mutate(Y_ik = ifelse(Y_ik == 1, "Yes", "No")) %>%
-  group_by(Y_ik, X1_ik) %>%
-  dplyr::summarize(n = n()) %>%
-  ungroup() %>%
-  pivot_wider(values_from = n, names_from = Y_ik) %>%
-  mutate(MC = factor(X1_ik, levels = mc_order)) %>%
-  dplyr::select(MC, Yes, No) %>%
-  mutate(Yes = ifelse(is.na(Yes), 0, Yes)) %>%
-  mutate(No = ifelse(is.na(No), 0, No)) %>%
-  arrange(MC)
+htc_table <- as_tibble(tally(~endpoint_coverage_htc, data = modelDat)) %>%
+  mutate(HTC = factor(endpoint_coverage_htc, levels = htc_order)) %>%
+  dplyr::select(HTC, n) %>%
+  arrange(HTC)
 
-vmmc_table <- modelDat %>%
-  dplyr::select(Y_ik, X1_ik_vmmc) %>%
-  mutate(X1_ik_vmmc = ifelse(is.na(X1_ik_vmmc), "Missing", X1_ik_vmmc)) %>%
-  mutate(Y_ik = ifelse(Y_ik == 1, "Yes", "No")) %>%
-  group_by(Y_ik, X1_ik_vmmc) %>%
+htc_hiv_table <- modelDat %>%
+  dplyr::select(endpoint_seroconvert, endpoint_coverage_htc) %>%
+  group_by(endpoint_seroconvert, endpoint_coverage_htc) %>%
   dplyr::summarize(n = n()) %>%
-  ungroup() %>%
-  pivot_wider(values_from = n, names_from = Y_ik) %>%
-  mutate(VMMC = factor(X1_ik_vmmc, levels = mc_order)) %>%
-  dplyr::select(VMMC, Yes, No) %>%
-  mutate(Yes = ifelse(is.na(Yes), 0, Yes)) %>%
-  mutate(No = ifelse(is.na(No), 0, No)) %>%
-  arrange(VMMC)
+  pivot_wider(names_from = endpoint_seroconvert, values_from = n) %>%
+  mutate(HTC = factor(endpoint_coverage_htc, levels = htc_order),
+         `HIV No` = No, `HIV Yes` = Yes) %>%
+  dplyr::select(HTC, `HIV Yes`, `HIV No`) %>%
+  arrange(HTC)
+```
+
+```{r}
+tally(endpoint_seroconvert ~ random_arm, data = modelDat_full)
 ```
 
 
+## Crude analysis on HTC and HIV
+
+Fisher's 2x2 Exact Test
+
+```{r}
+tab <- with(modelDat, table(Y_ik, X2_ik))
+tab
+fisher.test(tab, alternative = "two.sided")
+```
+
+Exact Logistic Regression
+
+```{r}
+# install.packages("elrm")
+library(elrm)
+
+# Aggregate to counts by (T, VMMC)
+ag <- modelDat %>%
+  count(T_k, X2_ik, Y_ik, name = "n") %>%
+  pivot_wider(names_from = Y_ik, values_from = n, values_fill = 0) %>%
+  rename(y = `1`, n0 = `0`) %>%
+  mutate(n = y + n0)
+
+# Exact logistic via elrm: y successes out of n trials
+set.seed(123)
+fit_ex <- elrm(formula  = y / n ~ T_k + X2_ik,
+               interest = ~ X2_ik,          # parameter of interest
+               iter     = 200000, burnIn = 5000,  # bump if chain is noisy
+               dataset  = ag)
+
+summary(fit_ex)
+```
 
 \newpage 
 
@@ -1091,10 +977,6 @@ cat("\\end{landscape}\n")
 
 ### B. Total Within-Cluster Spillover Effect of the Intervention
 
-"SpW" denotes total spillover within intervention clusters. This compares participants in intervention villages who received neither relevant intervention component to people in the control villages (who also did not receive any part of the intervention component)
-
-Then, under certain assumptions, the only way for an intervention village participant to have lower HIV risk is by association with others in the village with lower HIV risk because of their exposure to the intervention. 
-
 $$logit(Y_{ik}) = \beta_0^{\text{SpW}} + \beta_1^{\text{SpW}}(T_{k})$$
 
 Then $\exp\left( \beta_1^{\text{SpW}} \right)$ is a within-village spillover OR, and estimates the causal effect of living in a CP village, despite receiving no components oneself, on the odds of seroconversion. This is total within-village spillover effect. 
@@ -1192,16 +1074,16 @@ Thus, among people who received none of the intervention components, those livin
 
 \newpage
 
-### C. Within-Cluster Spillover of the Intervention Effect Not through Male Circumcision
+### C. Within-Cluster Spillover of the Intervention Effect Not through HTC
 
-"SpWR" denotes all the remaining spillover that affects one's outcome that exists when we block the mediated spillover path that exists through male circumcision. 
+"SpWR" denotes all the remaining spillover that affects one's outcome that exists when we block the mediated spillover path that exists through HTC.
 
-$$logit(Y_{ik}) = \beta_0^{\text{SpWR}} + \beta_1^{\text{SpWR}}(T_{k}) + \beta_2^{\text{SpWR}}(Z_k^{(1, \text{VMMC})})$$
+$$logit(Y_{ik}) = \beta_0^{\text{SpWR}} + \beta_1^{\text{SpWR}}(T_{k}) + \beta_2^{\text{SpWR}}(Z_k^{(2)})$$
 
-Here, $\exp\left(\beta_1^{\text{SpWR}} \right)$ compares untreated individuals in CP villages with untreated individuals in control villages after we hold the village's male-circumcision coverage fixed at the same value for both groups. So, it's the OR for the remaining within-village spillover - whatever protection (or risk) is left once the male-circumcision pathway has been accounted for. 
+Here, $\exp\left(\beta_1^{\text{SpWR}} \right)$ compares untreated individuals in CP villages with untreated individuals in control villages after we hold the village's HTC coverage fixed at the same value for both groups. So, it's the OR for the remaining within-village spillover - whatever protection (or risk) is left once the HTC pathway has been accounted for. 
 
 ```{r}
-test <- glm(Y_ik ~ Z1_k_vmmc,
+test <- glm(Y_ik ~ Z2_k,
                   family = binomial(link = 'logit'),
                   data = modelDat_SpW)
 
@@ -1213,17 +1095,17 @@ summary(test)
 # Within-Cluster Spillover of the Intervention Not Through MC
 
 # Model not accounting for clustering
-model_SpWR <- glm(Y_ik ~ T_k + Z1_k_vmmc,
+model_SpWR <- glm(Y_ik ~ T_k + Z2_k,
                   family = binomial(link = 'logit'),
                   data = modelDat_SpW)
 
 # Model accounting for clustering using GLMM
-model_SpWR_glmm <- glmer(Y_ik ~ T_k + Z1_k_vmmc + (1|cluster_id), # Uses exchangeable
+model_SpWR_glmm <- glmer(Y_ik ~ T_k + Z2_k + (1|cluster_id), # Uses exchangeable
                          data = modelDat_SpW, 
                          family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
-model_SpWR_gee <- geeglm(Y_ik ~ T_k + Z1_k_vmmc,
+model_SpWR_gee <- geeglm(Y_ik ~ T_k + Z2_k,
                          family = binomial(link = "logit"),
                          id = cluster_id,
                          data = modelDat_SpW,
@@ -1296,17 +1178,47 @@ SpWR_Model_Table <- rbind(tidy_SpWR, tidy_SpWR_glmm) %>%
 
 ```{r, results = 'asis', echo = FALSE}
 print(xtable(SpWR_Model_Table, 
-             caption = "Spillover Not Due to Male Circumcision Model Output"), 
+             caption = "Spillover Not Due to HTC Model Output"), 
       type = 'latex', include.rownames = FALSE, comment = FALSE)
 ```
 
 After we hold village circumcision coverage fixed, untreated residence of CP villages will still have a `r (1 - round(exp_beta_SpWR_1, 2))*100`% lower odds of seroconversion than untreated residence of control villages. This is spillover that operates through pathways other than male-circumcision coverage (e.g. HTC uptake, general behavior change, program outreach). 
 
 Then, moving from a 0% to 100% male circumcised coverage in a village multiplies an untreated person's odds of seroconversion by `r round(exp_beta_SpWR_2, 2)`. This means `r (1 - round(exp_beta_SpWR_2, 2))*100`% lower odds of HIV acquisition for an untreated person when their village goes from zero to complete male-circumcision coverage.  
+\newpage
+
+
+### D. Indirect Spillover Effects Through VMMC
+
+
+```{r, echo = FALSE}
+SpW_DirectIndirect_Table <- tibble(
+  Model = c("GLM", "GLMM", "GEE")) %>%
+  mutate(
+    `Direct Effect` = c(exp_beta_SpWR_1, 
+                       exp_beta_SpWR_1_glmm,
+                       exp_beta_SpWR_1_gee),
+    `Indirect Effect` = c(exp(log(exp_beta_SpW_1)-log(exp_beta_SpWR_1)), 
+                       exp(log(exp_beta_SpW_1_glmm)-log(exp_beta_SpWR_1_glmm)),
+                       exp(log(exp_beta_SpW_1_gee) - log(exp_beta_SpWR_1_gee))),
+    `Total Effect` = c(exp_beta_SpW_1, 
+                       exp_beta_SpW_1_glmm,
+                       exp_beta_SpW_1_gee), 
+  ) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(SpW_DirectIndirect_Table, 
+             caption = "Direct, Indirect, and Total Spillover Effects of Treatment Assignment (Shown as ORs)"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
 
 \newpage
 
-### D. Proportion of Within-Intervention Village Spillover Effect Mediated by Circumcision
+### E. Proportion of Within-Intervention Village Spillover Effect Mediated by Circumcision
 
 Then, the proportion of within-intervention village spillover effect mediated by circumcision is
 
@@ -2001,51 +1913,48 @@ print(
 cat("\\end{landscape}\n")
 ```
 
-The mediator model regresses the mediator on the exposure and confounders. Here, we block the spillover that exists through the proportion circumcised and proportion who received HTC in the cluster by controlling for it in the model (inclusion of $Z_k^{(1)}$ and $Z_k^{(2)}$ in the model). 
-
 \newpage
 
-### E. Mediator Model for Individual Effect of Treatment Assignment
+### F. Total Individual Effect Model
 
-"IndM" denotes individual effects, i.e. effects of a male's own treatment assignment on their own outcome. Here, we use the product method to calculate the direct and indirect effects, with the outcome being $Y_{ik}$, treatment being $T_k$, and mediator being $X_{ik}^{(1, \text{VMMC})}$, whether or not a male has VMMC. The abbreviation "IndM" refers to the individual effect mediator model, shown below.
+"Ind" denotes individual effects, i.e. effects of a male's own treatment assignment on their own outcome. Here, we use the difference method to calculate the direct and indirect effects, with the outcome being $Y_{ik}$, treatment being $T_k$, and mediator being $X_{ik}^{(1, \text{VMMC})}$, whether or not a male has VMMC. The abbreviation "Ind" refers to the total individual effects model, shown below.
 
 
 
-$$logit(X_{ik}^{(1, \text{VMMC})}) = \beta_0^{\text{IndM}} + \beta_1^{\text{IndM}}(T_{k})$$
+$$logit(Y_{ik}) = \beta_0^{\text{Ind}} + \beta_1^{\text{Ind}}(T_{k})$$
 
 ```{r, message = FALSE}
-# Mediator Model for Individual Effect of Treatment Assignment
-
+# Total individual effects model
 modelDat_Ind <- modelDat_Ind %>%
   mutate(X1_ik_vmmc = ifelse(X1_ik_vmmc == "Yes", 1, 
                              ifelse(X1_ik_vmmc == "No", 0, NA)))
 
 # Model not accounting for clustering
-model_IndM <- glm(X1_ik_vmmc ~ T_k,
-                  family = binomial(link = 'logit'),
-                  data = modelDat_Ind)
+model_Ind <- glm(Y_ik ~ T_k,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_Ind)
 
 # Model accounting for clustering using GLMM
-model_IndM_glmm <- glmer(X1_ik_vmmc ~ T_k + (1|cluster_id), # Uses exchangeable
-                         data = modelDat_Ind,
-                         family = binomial(link = "logit"))
+model_Ind_glmm <- glmer(Y_ik ~ T_k + (1|cluster_id), # Uses exchangeable
+                        data = modelDat_Ind,
+                        family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
-model_IndM_gee <- geeglm(X1_ik_vmmc ~ T_k,
-                         family = binomial(link = "logit"),
-                         id = cluster_id,
-                         data = modelDat_Ind,
-                         corstr = "exchangeable") # working correlation
+model_Ind_gee <- geeglm(Y_ik ~ T_k,
+                        family = binomial(link = "logit"),
+                        id = cluster_id,
+                        data = modelDat_Ind,
+                        corstr = "exchangeable") # working correlation
 ```
 
 ```{r, echo = FALSE}
 # GLM Model
-model_IndM_summary <- summary(model_IndM) # Save model summary
+model_Ind_summary <- summary(model_Ind) # Save model summary
 
-exp_beta_IndM_0 <- exp(model_IndM_summary$coefficients[1,1]) # Intercept
-exp_beta_IndM_1 <- exp(model_IndM_summary$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_0 <- exp(model_Ind_summary$coefficients[1,1]) # Intercept
+exp_beta_Ind_1 <- exp(model_Ind_summary$coefficients[2,1]) # T_k Coefficient
 
-tidy_IndM <- broom::tidy(model_IndM, conf.int = TRUE, exponentiate = TRUE) %>%
+tidy_Ind <- broom::tidy(model_Ind, conf.int = TRUE, exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GLM",
          Term = term,
@@ -2058,12 +1967,12 @@ tidy_IndM <- broom::tidy(model_IndM, conf.int = TRUE, exponentiate = TRUE) %>%
   mutate(ICC = NA)
 
 # GLMM Model
-model_IndM_summary_glmm <- summary(model_IndM_glmm) # Save model summary
+model_Ind_summary_glmm <- summary(model_Ind_glmm) # Save model summary
 
-exp_beta_IndM_0_glmm <- exp(model_IndM_summary_glmm$coefficients[1,1]) # Intercept
-exp_beta_IndM_1_glmm <- exp(model_IndM_summary_glmm$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_0_glmm <- exp(model_Ind_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_glmm <- exp(model_Ind_summary_glmm$coefficients[2,1]) # T_k Coefficient
 
-tidy_IndM_glmm <- broom.mixed::tidy(model_IndM_glmm, effects = "fixed", 
+tidy_Ind_glmm <- broom.mixed::tidy(model_Ind_glmm, effects = "fixed", 
                   conf.int = TRUE, exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GLMM",
@@ -2074,15 +1983,15 @@ tidy_IndM_glmm <- broom.mixed::tidy(model_IndM_glmm, effects = "fixed",
          `p-value` = round(p.value, 3)) %>%
   dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
   dplyr::filter(Term != "(Intercept)") %>%
-  mutate(ICC = round(performance::icc(model_IndM_glmm)$ICC_adjusted[[1]], 3))
+  mutate(ICC = round(performance::icc(model_Ind_glmm)$ICC_adjusted[[1]], 3))
 
 # GEE Model
-model_IndM_summary_gee <- summary(model_IndM_gee) # Save model summary
+model_Ind_summary_gee <- summary(model_Ind_gee) # Save model summary
 
-exp_beta_IndM_0_gee <- exp(model_IndM_summary_gee$coefficients[1,1]) # Intercept
-exp_beta_IndM_1_gee <- exp(model_IndM_summary_gee$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_0_gee <- exp(model_Ind_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_gee <- exp(model_Ind_summary_gee$coefficients[2,1]) # T_k Coefficient
 
-tidy_IndM_gee <- broom::tidy(model_IndM_gee, conf.int = TRUE, 
+tidy_Ind_gee <- broom::tidy(model_Ind_gee, conf.int = TRUE, 
                             exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GEE",
@@ -2093,41 +2002,41 @@ tidy_IndM_gee <- broom::tidy(model_IndM_gee, conf.int = TRUE,
          `p-value` = round(p.value, 3)) %>%
   dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
   dplyr::filter(Term != "(Intercept)") %>%
-  mutate(ICC = round(model_IndM_gee$geese$alpha[[1]], 3))
+  mutate(ICC = round(model_Ind_gee$geese$alpha[[1]], 3))
 
 # Overall Output Table for SpW
-IndM_Model_Table <- rbind(tidy_IndM, tidy_IndM_glmm) %>%
-  rbind(tidy_IndM_gee)
+Ind_Model_Table <- rbind(tidy_Ind, tidy_Ind_glmm) %>%
+  rbind(tidy_Ind_gee)
 ```
 
 ```{r, results = 'asis', echo = FALSE}
-print(xtable(IndM_Model_Table, 
-             caption = "Mediator Model for Individual Effects"), 
+print(xtable(Ind_Model_Table, 
+             caption = "Total Individual Effects Model Output"), 
       type = 'latex', include.rownames = FALSE, comment = FALSE)
 ```
 
 
-### F. Outcome Model for Individual Effect of Treatment Assignment
+### G. Direct Individual Effects Model
 
-Now, we regress the outcome, $Y_{ik}$ on the treatment assignment $T_k$ and VMMC mediator $X_{ik}^{(1, \text{VMMC})}$. The abbreviation "IndO" refers to the individual effect outcome model, shown below.
+Now, we regress the outcome, $Y_{ik}$ on the treatment assignment $T_k$ and VMMC mediator $X_{ik}^{(1, \text{VMMC})}$. The abbreviation "IndD" refers to this model, shown below.
 
-$$logit(Y_{ik}) = \beta_0^{\text{IndO}} + \beta_1^{\text{IndO}}(T_{k}) + \beta_2^{\text{IndO}} (X_{ik}^{(1, \text{VMMC})})$$
+$$logit(Y_{ik}) = \beta_0^{\text{IndD}} + \beta_1^{\text{IndD}}(T_{k}) + \beta_2^{\text{IndD}} (X_{ik}^{(1, \text{VMMC})})$$
 
 ```{r, warning = FALSE, message = FALSE}
 # Outcome Model for Individual Effect of Treatment Assignment
 
 # Model not accounting for clustering
-model_IndO <- glm(Y_ik ~ T_k + X1_ik_vmmc,
+model_IndD <- glm(Y_ik ~ T_k + X1_ik_vmmc,
                   family = binomial(link = 'logit'),
                   data = modelDat_Ind)
 
 # Model accounting for clustering using GLMM
-model_IndO_glmm <- glmer(Y_ik ~ T_k + X1_ik_vmmc + (1|cluster_id), # Uses exchangeable
+model_IndD_glmm <- glmer(Y_ik ~ T_k + X1_ik_vmmc + (1|cluster_id), # Uses exchangeable
                          data = modelDat_Ind,
                          family = binomial(link = "logit"))
 
 # Model accounting for clustering using GEE
-model_IndO_gee <- geeglm(Y_ik ~ T_k + X1_ik_vmmc,
+model_IndD_gee <- geeglm(Y_ik ~ T_k + X1_ik_vmmc,
                          family = binomial(link = "logit"),
                          id = cluster_id,
                          data = modelDat_Ind,
@@ -2136,13 +2045,13 @@ model_IndO_gee <- geeglm(Y_ik ~ T_k + X1_ik_vmmc,
 
 ```{r, echo = FALSE}
 # GLM Model
-model_IndO_summary <- summary(model_IndO) # Save model summary
+model_IndD_summary <- summary(model_IndD) # Save model summary
 
-exp_beta_IndO_0 <- exp(model_IndO_summary$coefficients[1,1]) # Intercept
-exp_beta_IndO_1 <- exp(model_IndO_summary$coefficients[2,1]) # T_k Coefficient
-exp_beta_IndO_2 <- exp(model_IndO_summary$coefficients[3,1]) # X1_vmmc Coefficient
+exp_beta_IndD_0 <- exp(model_IndD_summary$coefficients[1,1]) # Intercept
+exp_beta_IndD_1 <- exp(model_IndD_summary$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2 <- exp(model_IndD_summary$coefficients[3,1]) # X1_vmmc Coefficient
 
-tidy_IndO <- broom::tidy(model_IndO, conf.int = TRUE, exponentiate = TRUE) %>%
+tidy_IndD <- broom::tidy(model_IndD, conf.int = TRUE, exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GLM",
          Term = term,
@@ -2155,13 +2064,13 @@ tidy_IndO <- broom::tidy(model_IndO, conf.int = TRUE, exponentiate = TRUE) %>%
   mutate(ICC = NA)
 
 # GLMM Model
-model_IndO_summary_glmm <- summary(model_IndO_glmm) # Save model summary
+model_IndD_summary_glmm <- summary(model_IndD_glmm) # Save model summary
 
-exp_beta_IndO_0_glmm <- exp(model_IndO_summary_glmm$coefficients[1,1]) # Intercept
-exp_beta_IndO_1_glmm <- exp(model_IndO_summary_glmm$coefficients[2,1]) # T_k Coefficient
-exp_beta_IndO_2_glmm <- exp(model_IndO_summary_glmm$coefficients[3,1]) # X1_vmmc Coefficient
+exp_beta_IndD_0_glmm <- exp(model_IndD_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_IndD_1_glmm <- exp(model_IndD_summary_glmm$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2_glmm <- exp(model_IndD_summary_glmm$coefficients[3,1]) # X1_vmmc Coefficient
 
-tidy_IndO_glmm <- broom.mixed::tidy(model_IndO_glmm, effects = "fixed", 
+tidy_IndD_glmm <- broom.mixed::tidy(model_IndD_glmm, effects = "fixed", 
                   conf.int = TRUE, exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GLMM",
@@ -2172,16 +2081,16 @@ tidy_IndO_glmm <- broom.mixed::tidy(model_IndO_glmm, effects = "fixed",
          `p-value` = round(p.value, 3)) %>%
   dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
   dplyr::filter(Term != "(Intercept)") %>%
-  mutate(ICC = round(performance::icc(model_IndO_glmm)$ICC_adjusted[[1]], 3))
+  mutate(ICC = round(performance::icc(model_IndD_glmm)$ICC_adjusted[[1]], 3))
 
 # GEE Model
-model_IndO_summary_gee <- summary(model_IndO_gee) # Save model summary
+model_IndD_summary_gee <- summary(model_IndD_gee) # Save model summary
 
-exp_beta_IndO_0_gee <- exp(model_IndO_summary_gee$coefficients[1,1]) # Intercept
-exp_beta_IndO_1_gee <- exp(model_IndO_summary_gee$coefficients[2,1]) # T_k Coefficient
-exp_beta_IndO_2_gee <- exp(model_IndO_summary_gee$coefficients[3,1]) # X1_vmmc Coefficient
+exp_beta_IndD_0_gee <- exp(model_IndD_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_IndD_1_gee <- exp(model_IndD_summary_gee$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2_gee <- exp(model_IndD_summary_gee$coefficients[3,1]) # X1_vmmc Coefficient
 
-tidy_IndO_gee <- broom::tidy(model_IndO_gee, conf.int = TRUE, 
+tidy_IndD_gee <- broom::tidy(model_IndD_gee, conf.int = TRUE, 
                             exponentiate = TRUE) %>%
   dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
   mutate(Model = "GEE",
@@ -2192,35 +2101,37 @@ tidy_IndO_gee <- broom::tidy(model_IndO_gee, conf.int = TRUE,
          `p-value` = round(p.value, 3)) %>%
   dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
   dplyr::filter(Term != "(Intercept)") %>%
-  mutate(ICC = abs(round(model_IndO_gee$geese$alpha[[1]], 3)))
+  mutate(ICC = abs(round(model_IndD_gee$geese$alpha[[1]], 3)))
 
 # Overall Output Table for SpW
-IndO_Model_Table <- rbind(tidy_IndO, tidy_IndO_glmm) %>%
-  rbind(tidy_IndO_gee)
+IndD_Model_Table <- rbind(tidy_IndD, tidy_IndD_glmm) %>%
+  rbind(tidy_IndD_gee)
 ```
 
 ```{r, results = 'asis', echo = FALSE}
-print(xtable(IndO_Model_Table, 
-             caption = "Outcome Model for Individual Effects"), 
+print(xtable(IndD_Model_Table, 
+             caption = "Direct Individual Effects Model Output"), 
       type = 'latex', include.rownames = FALSE, comment = FALSE)
 ```
 
-### G. Direct and Indirect Individual Effects of Treatment Assignment
+### H. Direct and Indirect Individual Effects of Treatment Assignment
 
-The direct individual effect of treatment assignment on HIV seroconversion is $\beta_1^{\text{IndO}}$. The indirect individual effect of treatment assignment on HIV seroconversion is $\beta_1^{\text{IndM}} \times \beta_2^{\text{IndO}}$. Then, the total effect is the sum of these, namely $\beta_1^{\text{IndO}} + \beta_1^{\text{IndM}} \times \beta_2^{\text{IndO}}$.
+The direct individual effect of treatment assignment on HIV seroconversion is $\beta_1^{\text{IndD}}$. The indirect individual effect of treatment assignment on HIV seroconversion is $\beta_1^{\text{IndM}} \times \beta_2^{\text{IndD}}$. Then, the total effect is the sum of these, namely $\beta_1^{\text{IndD}} + \beta_1^{\text{IndM}} \times \beta_2^{\text{IndD}}$.
 
 ```{r, echo = FALSE}
 Ind_DirectIndirect_Table <- tibble(
-  Model = c("GLM", "GLMM", "GEE"),
-  `Direct Effect` = c(exp_beta_IndO_1,
-                      exp_beta_IndO_1_glmm, 
-                      exp_beta_IndO_1_gee),
-  `Indirect Effect` = c(exp(log(exp_beta_IndM_1)*log(exp_beta_IndO_2)), 
-                        exp(log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm)), 
-                        exp(log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee)))) %>%
-  mutate(`Total Effect` = c(exp(log(exp_beta_IndO_1) + log(exp_beta_IndM_1)*log(exp_beta_IndO_2)),
-                            exp(log(exp_beta_IndO_1_glmm) + log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm)),
-                            exp(log(exp_beta_IndO_1_gee) + log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee)))) %>%
+  Model = c("GLM", "GLMM", "GEE")) %>%
+  mutate(
+    `Direct Effect` = c(exp_beta_IndD_1, 
+                       exp_beta_IndD_1_glmm,
+                       exp_beta_IndD_1_gee),
+    `Indirect Effect` = c(exp(log(exp_beta_Ind_1)-log(exp_beta_IndD_1)), 
+                       exp(log(exp_beta_Ind_1_glmm)-log(exp_beta_IndD_1_glmm)),
+                       exp(log(exp_beta_Ind_1_gee) - log(exp_beta_IndD_1_gee))),
+    `Total Effect` = c(exp_beta_Ind_1, 
+                       exp_beta_Ind_1_glmm,
+                       exp_beta_Ind_1_gee), 
+  ) %>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 ```
 
@@ -2231,20 +2142,20 @@ print(xtable(Ind_DirectIndirect_Table,
 ```
 
 
-### H. Proportion of Individual Effect of Treatment Assignment Mediated by Circumcision
+### I. Proportion of Individual Effect of Treatment Assignment Mediated by Circumcision
 
 The proportion of the total individual effect that is mediated by circumcision can be calculated as:
 
-$$\frac{\beta_1^{\text{IndM}} \times \beta_2^{\text{IndO}}}{\beta_1^{\text{IndO}} + \beta_1^{\text{IndM}} \times \beta_2^{\text{IndO}}}$$
+$$\frac{\beta_1^{\text{Ind}} - \beta_2^{\text{IndD}}}{\beta_1^{\text{Ind}}}$$
 
 This is the indirect effect (i.e. effect of treatment assignment through the MC mediator on the outcome) divided by the total effect of the treatment assignment on the outcome (both through and not through the mediator). 
 
 ```{r, include = FALSE}
 Ind_PropMediated <- tibble(
   Model = c("GLM", "GLMM", "GEE"),
-  `Proportion Mediated` = c((log(exp_beta_IndM_1)*log(exp_beta_IndO_2))/(log(exp_beta_IndO_1) + log(exp_beta_IndM_1)*log(exp_beta_IndO_2)),
-                            (log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm))/(log(exp_beta_IndO_1_glmm) + log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm)),
-                            (log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee))/(log(exp_beta_IndO_1_gee) + log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee)))) %>%
+  `Proportion Mediated` = c((log(exp_beta_Ind_1) - log(exp_beta_IndD_1))/log(exp_beta_Ind_1),
+                            (log(exp_beta_Ind_1_glmm) - log(exp_beta_IndD_1_glmm))/log(exp_beta_Ind_1_glmm),
+              (log(exp_beta_Ind_1_gee) - log(exp_beta_IndD_1_gee))/log(exp_beta_Ind_1_gee))) %>%
   mutate(across(where(is.numeric), ~ round(.x, 3)))
 ```
 
@@ -2261,189 +2172,134 @@ Delta Method: First-order Taylor approximation for the variance of a smooth func
 $$\text{Var} \left\{ g(\hat{\theta}) \right\} \approx \nabla g(\hat{\theta})^T \hat{\text{Var}}(\hat{\theta}) \nabla g(\hat{\theta})$$
 where $\nabla g$ is the gradient of $g$ with respects to $\theta$ evaluated at the estimates.
 
-To simplify notation, let $a = \beta_1^{\text{IndM}}$ (from the mediator logit model), $b_1 = \beta_1^{\text{IndO}}$ and $b_2 = \beta_2^{\text{IndO}}$ (from the outcome logit model). Then, $\text{NIE} = a b_2$, $\text{TE} = b_1 + a b_2$, and $\text{PM} = \frac{\text{NIE}}{\text{TE}} = \frac{a b_2}{b_1 + a b_2}$ (natural indirect effect, total effect, and proportion mediated, respectively). The gradient for PM with respects to $(a, b_1, b_2)$ is
-
-$$\nabla \text{PM} = \left( \frac{b_1 b_2}{(b_1 + ab_2)^2}, -\frac{a b_2}{(b_1 + ab_2)^2}, \frac{a b_1}{(b_1 + ab_2)^2} \right)$$
-
-Then $\text{SE}(\text{PM}) \approx \sqrt{\nabla^T \Sigma \nabla}$, where $\Sigma$ is the joint covariance matrix of $(a, b_1, b_2)$. The mediator and outcome coefficients come from different models on the same data, so in principle, $\Sigma$ has cross-covariances between $a$ and $(b_1, b_2)$. Those aren't available by default, but we can use bootstrapping. We can use bootstrapping to find an estimated joint covariance of the logit coefficients $(a, b_1, b_2)$ to obtain $\hat{\Sigma} = \text{Cov}_{\text{boot}}(\hat{a}, \hat{b}_1, \hat{b}_2)$, and then apply
-$$\text{Var}(\hat{\text{PM}}) \approx \nabla \text{PM} (\hat{\theta})^T \hat{\Sigma} \nabla \text{PM}(\hat{\theta})$$
-
-Letting the gradient be $g(a, b_1, b_2) = (g_a, g_{b_1}, g_{b_2})$, this is written as
-$$\text{Var}(\hat{\text{PM}}) \approx g_a^2 \text{Var}(a) + g_{b_1}^2 \text{Var}(b_1) + g_{b_2}^2 \text{Var}(b_2) + 2 g_a g_{b_1} \text{Cov}(a, b_1) + 2 g_a g_{b_2} \text{Cov}(a, b_2) + 2 g_{b_1} g_{b_2} \text{Cov}(b_1, b_2)$$
-
-A normal-approximation CI is
-$$\hat{\text{PM}} \pm z_{1 - \alpha/2} \sqrt{\text{Var}(\hat{PM})}$$
-
-More specifically, in each bootstrap replicate $b = 1,...,B$, you refit both models on the same resampled clusters, giving the triplet $\hat{\theta}^{(b)} = (\hat{a}^{(b)}, \hat{b}_1^{(b)}, \hat{b}_2^{(b)})$. The joint covariance matrix $\hat{\Sigma}$ is just the sample covariance of those triplets:
-$$\hat{\Sigma} = \frac{1}{B-1}\sum_{b=1}^{B}(\hat{\theta}^{(b)} - \bar{\theta})(\hat{\theta}^{(b)} - \bar{\theta})^T, \bar{\theta} = \frac{1}{B}\sum_{b=1}^B \hat{\theta}^{(b)}$$
-
-The diagonals are the boot variances of $a$, $b_1$, and $b_2$. The off-diagonals (e.g. $\hat{Cov}(a,b_2)$) capture their dependence across models, because we estimated them from the same resamples. This way, we don't need to falsely assume independence between the mediator and outcome fits. 
-
-Below shows the CI for the PM using the delta method (and bootstrapping the joint covariance), and also the CI without using the delta method and purely just using the bootstrap. The percentile bootstrap CIs are extremely susceptible to sparse data, thus causing a wide interval. However, the delta-method CI with boot $\hat{\Sigma}$ reflects local uncertainty and preserves the true cross-model dependence, leading to narrower and easier to interpret CIs.
+Follows same procedure as for difference method with spillover analysis.
 
 GLM CI for PM
 
 ```{r, echo = FALSE, include = FALSE}
-# Cluster-bootstrap CI for Proportion Mediated (GLM product method)
-#   - Mediator:   X1_ik_vmmc ~ T_k
-#   - Outcome:    Y_ik       ~ T_k + X1_ik_vmmc
-#   - Effects:    NIE = a*b2,  NDE = b1,  TE = b1 + a*b2,  PM = NIE/TE
-# Bootstrap design:
-#   * Resample clusters with replacement (size = # unique clusters)
-#   * Force-in ALL clusters that have any Y_ik = 1 at least once
-#   * Stratify by treatment so treated/control cluster counts match original
-#   * Allow event clusters to be drawn again in the fill step (more variability)
-# No penalization; plain glm() with a higher maxit to help convergence.
-# Returns: PM point estimate, percentile CI, delta-method CI using boot Sigma.
-pm_boot_with_delta <- function(dat, id = "cluster_id",
-                               B = 1000, level = 0.95,
-                               force_event_once = TRUE,
-                               allow_dup_events = TRUE,
-                               seed = NULL, verbose = TRUE) {
-
+# Proportion mediated (DIFFERENCE method, GLM) with cluster bootstrap
+#   Total model : Y ~ T
+#   Direct model: Y ~ T + X
+#
+# PM_diff = 1 - c/a, where:
+#   a = beta_T from Y ~ T         (total effect on log-odds scale)
+#   c = beta_T from Y ~ T + X     (direct effect on log-odds scale)
+#
+# We:
+#   * Fit both models on full data to get (a0, c0) and PM0.
+#   * Cluster-bootstrap the data (stratified by treatment; force-in all event clusters).
+#   * From bootstrap draws of (a, c), compute Sigma_hat = cov((a, c)).
+#   * Use Delta method with gradient (c/a^2, -1/a) to get a CI for PM_diff.
+#
+# Returns: point estimate, delta-method CI, plus bootstrap diagnostics.
+# ------------------------------------------------------------
+pm_diff_boot_with_delta_glm <- function(dat, id = "cluster_id",
+                                        B = 1000, level = 0.95,
+                                        force_event_once = TRUE,
+                                        allow_dup_events  = TRUE,
+                                        seed = NULL, verbose = TRUE) {
   if (!is.null(seed)) set.seed(seed)
-
-  # ---------- Basic checks & setup ----------
-  if (!is.data.frame(dat)) stop("`dat` must be a data.frame/tibble.")
-  req <- c(id, "T_k", "X1_ik_vmmc", "Y_ik")
+  stopifnot(is.data.frame(dat))
+  req <- c(id, "Y_ik", "T_k", "X1_ik_vmmc")
   miss <- setdiff(req, names(dat))
-  if (length(miss)) stop("Missing required columns: ", paste(miss, collapse = ", "))
+  if (length(miss)) stop("Missing columns: ", paste(miss, collapse = ", "))
 
-  # logit models we will fit (plain GLMs)
-  fM <- stats::as.formula("X1_ik_vmmc ~ T_k")           # mediator
-  fO <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc")    # outcome
+  # --- Fit controls
+  ctrl <- stats::glm.control(maxit = 50)
 
-  # ---------- Cluster-level summaries ----------
-  # cluster-level treatment: assume constant within cluster;
-  # if not constant, use majority (warn the user).
-  cl_T <- tapply(dat$T_k, dat[[id]], function(x) {
-    u <- unique(x)
-    if (length(u) == 1) u else as.numeric(mean(x, na.rm = TRUE) >= 0.5)
+  # --- Full-data fits (same sample for both models)
+  f_total  <- stats::as.formula("Y_ik ~ T_k")
+  f_direct <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc")
+
+  fit_total  <- stats::glm(f_total,  family = stats::binomial(link = "logit"), data = dat, control = ctrl)
+  fit_direct <- stats::glm(f_direct, family = stats::binomial(link = "logit"), data = dat, control = ctrl)
+
+  a0 <- unname(stats::coef(fit_total )["T_k"])      # total (log-odds)
+  c0 <- unname(stats::coef(fit_direct)["T_k"])      # direct (log-odds)
+
+  PM0 <- if (is.finite(a0) && abs(a0) > .Machine$double.eps) 1 - c0 / a0 else NA_real_
+
+  # --- Build cluster strata & event flags for stratified bootstrap
+  cl_trt <- tapply(dat$T_k, dat[[id]], function(x) {
+    u <- unique(x); if (length(u) == 1) u else as.numeric(mean(x, na.rm = TRUE) >= 0.5)
   })
+  cl_evt <- tapply(dat$Y_ik, dat[[id]], function(y) any(y == 1, na.rm = TRUE))
 
-  # which clusters contain ANY events (Y_ik = 1)?
-  cl_event <- tapply(dat$Y_ik, dat[[id]], function(y) any(y == 1, na.rm = TRUE))
+  cl_t1 <- names(cl_trt)[cl_trt == 1]
+  cl_t0 <- names(cl_trt)[cl_trt == 0]
+  n1 <- length(cl_t1); n0 <- length(cl_t0)
 
-  cl_t1 <- names(cl_T)[cl_T == 1]
-  cl_t0 <- names(cl_T)[cl_T == 0]
+  evt_t1 <- intersect(cl_t1, names(cl_evt)[cl_evt])
+  evt_t0 <- intersect(cl_t0, names(cl_evt)[cl_evt])
 
-  evt_t1 <- intersect(cl_t1, names(cl_event)[cl_event])
-  evt_t0 <- intersect(cl_t0, names(cl_event)[cl_event])
-
-  # pools for filling the sample, stratified by treatment
   pool_t1 <- if (allow_dup_events) cl_t1 else setdiff(cl_t1, evt_t1)
   pool_t0 <- if (allow_dup_events) cl_t0 else setdiff(cl_t0, evt_t0)
 
-  n1 <- length(cl_t1); n0 <- length(cl_t0)   # target # clusters per arm
-  e1 <- length(evt_t1); e0 <- length(evt_t0)
-
-  # Detect and warn if treatment varies within some clusters
-  nonconst <- vapply(tapply(dat$T_k, dat[[id]], function(x) length(unique(x))), `>`, logical(1), 1)
-  if (any(nonconst)) warning("Treatment varies within some clusters; stratification uses cluster-level majority.")
-
-  # ---------- Helper to draw one bootstrap sample of cluster IDs ----------
+  # Helper: one stratified cluster sample (force-in event clusters once)
   make_sample_ids <- function() {
-    # Always include each event cluster once (if requested)
-    base <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
-
-    # Fill up to original counts with replacement, by treatment arm
+    base    <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
     fill_t1 <- if (n1 - length(evt_t1) > 0) sample(pool_t1, n1 - length(evt_t1), replace = TRUE) else character(0)
     fill_t0 <- if (n0 - length(evt_t0) > 0) sample(pool_t0, n0 - length(evt_t0), replace = TRUE) else character(0)
-
     c(base, fill_t1, fill_t0)
   }
 
-  # ---------- Point estimates on the full data ----------
-  ctrl <- stats::glm.control(maxit = 50)   # a few extra iterations can help
-  fit_M <- stats::glm(fM, family = stats::binomial(link = "logit"), data = dat, control = ctrl)
-  fit_O <- stats::glm(fO, family = stats::binomial(link = "logit"), data = dat, control = ctrl)
-
-  a0  <- stats::coef(fit_M)[["T_k"]]                 # mediator slope (T -> X)
-  b10 <- stats::coef(fit_O)[["T_k"]]                 # direct path   (T -> Y | X)
-  b20 <- stats::coef(fit_O)[["X1_ik_vmmc"]]          # mediator path (X -> Y | T)
-
-  NIE0 <- a0 * b20
-  TE0  <- b10 + NIE0
-  PM0  <- if (is.finite(TE0) && abs(TE0) > .Machine$double.eps) NIE0 / TE0 else NA_real_
-
-  # ---------- Bootstrap: store theta = (a, b1, b2) and PM ----------
-  theta <- matrix(NA_real_, nrow = B, ncol = 3, dimnames = list(NULL, c("a","b1","b2")))
-  PM    <- rep(NA_real_, B)
-
-  if (verbose) msg_every <- max(1, floor(B / 10))
+  # --- Bootstrap: store theta = (a, c)
+  theta <- matrix(NA_real_, nrow = B, ncol = 2, dimnames = list(NULL, c("a","c")))
+  if (verbose) msg_every <- max(1, floor(B/10))
 
   for (b in seq_len(B)) {
-    # 1) draw cluster IDs (stratified, event clusters forced in once)
     samp_ids <- make_sample_ids()
+    boot_dat <- do.call(rbind, lapply(samp_ids, function(k) dat[dat[[id]] == k, , drop = FALSE]))
 
-    # 2) build the bootstrap dataset
-    boot_dat <- do.call(rbind, lapply(samp_ids, function(k)
-      dat[dat[[id]] == k, , drop = FALSE]))
+    fit_t  <- try(suppressWarnings(stats::glm(f_total,  family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)), silent = TRUE)
+    fit_d  <- try(suppressWarnings(stats::glm(f_direct, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)), silent = TRUE)
 
-    # 3) fit both GLMs on the bootstrap sample
-    fit_Mb <- suppressWarnings(stats::glm(fM, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl))
-    fit_Ob <- suppressWarnings(stats::glm(fO, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl))
-
-    # 4) extract coefficients; if any are NA/±Inf, mark this draw as NA
-    a  <- suppressWarnings(stats::coef(fit_Mb)[["T_k"]])
-    b1 <- suppressWarnings(stats::coef(fit_Ob)[["T_k"]])
-    b2 <- suppressWarnings(stats::coef(fit_Ob)[["X1_ik_vmmc"]])
-
-    if (all(is.finite(c(a, b1, b2)))) {
-      theta[b, ] <- c(a = a, b1 = b1, b2 = b2)
-      NIE <- a * b2
-      TE  <- b1 + NIE
-      PM[b] <- if (is.finite(TE) && abs(TE) > .Machine$double.eps) NIE / TE else NA_real_
-    } else {
-      PM[b] <- NA_real_
+    if (!inherits(fit_t, "try-error") && !inherits(fit_d, "try-error")) {
+      a <- suppressWarnings(unname(stats::coef(fit_t)["T_k"]))
+      c <- suppressWarnings(unname(stats::coef(fit_d)["T_k"]))
+      if (all(is.finite(c(a, c)))) theta[b, ] <- c(a = a, c = c)
     }
 
     if (verbose && b %% msg_every == 0) message("bootstrap: ", b, "/", B)
   }
 
-  # ---------- Percentile CI for PM (pure bootstrap) ----------
-  alpha <- (1 - level) / 2
-  ci_boot <- stats::quantile(PM, probs = c(alpha, 1 - alpha), na.rm = TRUE)
-
-  # ---------- Delta-method CI using bootstrapped joint covariance ----------
-  # Gradient PM at point estimates (a0, b10, b20)
-  TE <- TE0
-  g1 <- (b10 * b20) / (TE^2)    # dPM/da
-  g2 <- -(a0 * b20) / (TE^2)    # dPM/db1
-  g3 <- (a0 * b10) / (TE^2)     # dPM/db2
-  grad <- c(g1, g2, g3)
-
-  # Empirical joint covariance of (a, b1, b2) from bootstrap draws
-  # (no independence assumption needed)
+  # --- Joint covariance from bootstrap draws
   Sigma_hat <- stats::cov(theta, use = "pairwise.complete.obs")
 
-  var_PM <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
-  se_PM  <- sqrt(var_PM)
-  z      <- stats::qnorm(1 - alpha)
-  ci_delta <- PM0 + c(-1, 1) * z * se_PM
+  # --- Delta-method CI for PM_diff
+  alpha <- (1 - level)/2
+  if (is.finite(PM0) && abs(a0) > .Machine$double.eps && all(is.finite(Sigma_hat))) {
+    g1 <-  c0 / (a0^2)         # ∂(1 - c/a)/∂a
+    g2 <- -1  /  a0            # ∂(1 - c/a)/∂c
+    grad <- c(g1, g2)
 
-  # ---------- Return results ----------
+    var_PM <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
+    se_PM  <- sqrt(var_PM)
+    z      <- stats::qnorm(1 - alpha)
+    ci     <- PM0 + c(-1, 1) * z * se_PM
+  } else {
+    se_PM <- NA_real_; ci <- c(NA_real_, NA_real_)
+  }
+
   list(
-    point_PM      = PM0,
-    ci_boot_PM    = ci_boot,
-    ci_delta_PM   = ci_delta,
-    boot_draws_PM = PM,
-    boot_theta    = theta,
-    Sigma_hat     = Sigma_hat,
-    settings      = list(B = B,
-                         level = level,
-                         force_event_once = force_event_once,
-                         allow_dup_events  = allow_dup_events)
+    point_PM    = PM0,                 # PM_diff point estimate
+    ci_delta_PM = ci,                  # delta-method CI using boot Sigma
+    Sigma_hat   = Sigma_hat,           # joint cov of (a, c) from bootstrap
+    a0 = a0, c0 = c0,                  # total & direct log-odds estimates
+    settings = list(B = B, level = level,
+                    force_event_once = force_event_once,
+                    allow_dup_events  = allow_dup_events)
   )
 }
 ```
 
 ```{r, echo = FALSE, include = FALSE}
 set.seed(123)
-res <- pm_boot_with_delta(modelDat_Ind, id = "cluster_id", B = 1000, verbose = TRUE)
-res$point_PM
-res$ci_boot_PM
-res$ci_delta_PM
+res_ind_diff_glm <- pm_diff_boot_with_delta_glm(modelDat_Ind, id = "cluster_id",
+                                                B = 800, verbose = TRUE)
+
+res_ind_diff_glm$point_PM      # PM_diff estimate (can be negative on logit scale)
+res_ind_diff_glm$ci_delta_PM   # delta-method CI using bootstrapped Sigma
 ```
 
 
@@ -2451,176 +2307,154 @@ GLMM CI for PM
 
 ```{r, echo = FALSE, include = FALSE}
 # ------------------------------------------------------------
-# Cluster-bootstrap CI for Proportion Mediated (GLMM product method)
-#   Mediator (GLMM): X1_ik_vmmc ~ T_k + (1 | cluster_id)
-#   Outcome  (GLMM): Y_ik       ~ T_k + X1_ik_vmmc + (1 | cluster_id)
-# Effects on logit scale:
-#   NIE = a * b2,  NDE = b1,  TE = b1 + a*b2,  PM = NIE / TE
-# Bootstrap design:
-#   * Resample clusters with replacement (size = # unique clusters)
-#   * Force-in ALL clusters that have any Y_ik = 1 at least once
-#   * Stratify by treatment so treated/control cluster counts match original
-#   * For GLMM, duplicate draws are given NEW random-effect labels (.boot_id)
-# Returns: PM point estimate, percentile CI, delta-method CI using boot Sigma.
+# Proportion mediated (DIFFERENCE method, GLMM) with cluster bootstrap + delta CI
+#   Total model : Y_ik ~ T_k + (1 | cluster)
+#   Direct model: Y_ik ~ T_k + X1_ik_vmmc + (1 | cluster)
+#
+# PM_diff = 1 - c/a, where:
+#   a = beta_T from total model   (log-odds)
+#   c = beta_T from direct model  (log-odds)
+#
+# We:
+#  * Fit both GLMMs on full data to get (a0, c0).
+#  * Cluster-bootstrap the data (stratified by treatment; force-in all event clusters).
+#  * In each replicate, duplicates get a NEW random-effect ID (.boot_id) so glmer treats
+#    them as distinct groups.
+#  * From bootstrap draws of (a, c), compute Sigma_hat = cov((a, c)).
+#  * Use Delta method with gradient (c/a^2, -1/a) to get CI for PM_diff.
 # ------------------------------------------------------------
-pm_boot_with_delta_glmm <- function(dat, id = "cluster_id",
-                                    B = 500, level = 0.95,
-                                    force_event_once = TRUE,
-                                    allow_dup_events = TRUE,
-                                    seed = NULL, verbose = TRUE) {
-
+pm_diff_boot_with_delta_glmm <- function(dat, id = "cluster_id",
+                                         B = 500, level = 0.95,
+                                         force_event_once = TRUE,
+                                         allow_dup_events  = TRUE,
+                                         seed = NULL, verbose = TRUE) {
   if (!is.null(seed)) set.seed(seed)
   if (!requireNamespace("lme4", quietly = TRUE)) {
-    stop("Package 'lme4' is required for GLMM. Please install it.")
+    stop("Package 'lme4' is required. Please install it.")
   }
-
-  # ---------- Basic checks ----------
-  if (!is.data.frame(dat)) stop("`dat` must be a data.frame/tibble.")
-  req <- c(id, "T_k", "X1_ik_vmmc", "Y_ik")
+  stopifnot(is.data.frame(dat))
+  req <- c(id, "Y_ik", "T_k", "X1_ik_vmmc")
   miss <- setdiff(req, names(dat))
-  if (length(miss)) stop("Missing required columns: ", paste(miss, collapse = ", "))
+  if (length(miss)) stop("Missing columns: ", paste(miss, collapse = ", "))
 
-  # ---------- Point-estimate GLMMs on FULL data ----------
-  fM_full <- stats::as.formula(paste0("X1_ik_vmmc ~ T_k + (1|", id, ")"))
-  fO_full <- stats::as.formula(paste0("Y_ik ~ T_k + X1_ik_vmmc + (1|", id, ")"))
+  # --- Controls to help glmer converge with sparse events
   ctrl <- lme4::glmerControl(optimizer = "bobyqa",
-                             optCtrl = list(maxfun = 2e5),
+                             optCtrl   = list(maxfun = 2e5),
                              check.conv.grad = "ignore",
                              check.conv.singular = "ignore")
 
-  fit_M <- suppressWarnings(lme4::glmer(fM_full, family = stats::binomial(link = "logit"),
-                                        data = dat, control = ctrl))
-  fit_O <- suppressWarnings(lme4::glmer(fO_full, family = stats::binomial(link = "logit"),
-                                        data = dat, control = ctrl))
+  # --- Full-data fits (point estimates)
+  f_total_full  <- stats::as.formula(paste0("Y_ik ~ T_k + (1|", id, ")"))
+  f_direct_full <- stats::as.formula(paste0("Y_ik ~ T_k + X1_ik_vmmc + (1|", id, ")"))
 
-  a0  <- lme4::fixef(fit_M)[["T_k"]]                # effect of T on mediator
-  b10 <- lme4::fixef(fit_O)[["T_k"]]                # direct effect (T -> Y | X)
-  b20 <- lme4::fixef(fit_O)[["X1_ik_vmmc"]]         # mediator effect (X -> Y | T)
+  fit_total  <- suppressWarnings(lme4::glmer(f_total_full,  family = stats::binomial(link = "logit"), data = dat, control = ctrl))
+  fit_direct <- suppressWarnings(lme4::glmer(f_direct_full, family = stats::binomial(link = "logit"), data = dat, control = ctrl))
 
-  NIE0 <- a0 * b20
-  TE0  <- b10 + NIE0
-  PM0  <- if (is.finite(TE0) && abs(TE0) > .Machine$double.eps) NIE0 / TE0 else NA_real_
+  a0 <- as.numeric(lme4::fixef(fit_total )["T_k"])  # total (log-odds)
+  c0 <- as.numeric(lme4::fixef(fit_direct)["T_k"])  # direct (log-odds)
 
-  # ---------- Cluster-level treatment & event flags ----------
-  # If treatment varies within a cluster, use majority as its cluster-level label.
+  PM0 <- if (is.finite(a0) && abs(a0) > .Machine$double.eps) 1 - c0 / a0 else NA_real_
+
+  # --- Cluster strata & event flags for stratified bootstrap
   cl_T <- tapply(dat$T_k, dat[[id]], function(x) {
     u <- unique(x); if (length(u) == 1) u else as.numeric(mean(x, na.rm = TRUE) >= 0.5)
   })
   cl_event <- tapply(dat$Y_ik, dat[[id]], function(y) any(y == 1, na.rm = TRUE))
 
-  cl_t1 <- names(cl_T)[cl_T == 1]
-  cl_t0 <- names(cl_T)[cl_T == 0]
+  cl_t1 <- names(cl_T)[cl_T == 1];  cl_t0 <- names(cl_T)[cl_T == 0]
+  n1 <- length(cl_t1);              n0 <- length(cl_t0)
 
   evt_t1 <- intersect(cl_t1, names(cl_event)[cl_event])
   evt_t0 <- intersect(cl_t0, names(cl_event)[cl_event])
 
-  n1 <- length(cl_t1); n0 <- length(cl_t0)
-
-  # Pools to fill from; allow event clusters to also be drawn again if requested
   pool_t1 <- if (allow_dup_events) cl_t1 else setdiff(cl_t1, evt_t1)
   pool_t0 <- if (allow_dup_events) cl_t0 else setdiff(cl_t0, evt_t0)
 
-  # ---------- Helper: build ONE bootstrap dataset with NEW random-effect IDs ----------
+  # --- Build one bootstrap dataset with NEW random-effect IDs (.boot_id)
   make_boot_df <- function() {
-    # 1) choose cluster IDs for this replicate (stratified, force-in event clusters)
-    base <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
+    base    <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
     fill_t1 <- if (n1 - length(evt_t1) > 0) sample(pool_t1, n1 - length(evt_t1), replace = TRUE) else character(0)
     fill_t0 <- if (n0 - length(evt_t0) > 0) sample(pool_t0, n0 - length(evt_t0), replace = TRUE) else character(0)
     samp_ids <- c(base, fill_t1, fill_t0)
 
-    # 2) build the data by stacking selected clusters, assigning a NEW .boot_id per draw
     parts <- vector("list", length(samp_ids))
     for (j in seq_along(samp_ids)) {
       k <- samp_ids[j]
       d <- dat[dat[[id]] == k, , drop = FALSE]
-      # Give a unique random-effect label to THIS sampled copy of cluster k
-      d[[".boot_id"]] <- paste0("C", j, "_", k)
+      d[[".boot_id"]] <- paste0("C", j, "_", k)  # unique RE label for this copy
       parts[[j]] <- d
     }
     out <- do.call(rbind, parts)
-    out[[".boot_id"]] <- factor(out[[".boot_id"]])  # ensure treated as grouping factor
+    out[[".boot_id"]] <- factor(out[[".boot_id"]])
     out
   }
 
-  # ---------- Bootstrap: store theta = (a, b1, b2) and PM ----------
-  theta <- matrix(NA_real_, nrow = B, ncol = 3, dimnames = list(NULL, c("a","b1","b2")))
-  PM     <- rep(NA_real_, B)
-
-  # GLMM formulas that use the temporary .boot_id as the random-intercept grouping
-  fM_boot <- stats::as.formula("X1_ik_vmmc ~ T_k + (1|.boot_id)")
-  fO_boot <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc + (1|.boot_id)")
-
+  # --- Bootstrap storage
+  theta <- matrix(NA_real_, nrow = B, ncol = 2, dimnames = list(NULL, c("a","c")))
   if (verbose) msg_every <- max(1, floor(B/10))
+
+  # --- Boot formulas using .boot_id as grouping factor
+  f_total_boot  <- stats::as.formula("Y_ik ~ T_k + (1|.boot_id)")
+  f_direct_boot <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc + (1|.boot_id)")
 
   for (b in seq_len(B)) {
     boot_dat <- make_boot_df()
 
-    fit_Mb <- try(suppressWarnings(
-      lme4::glmer(fM_boot, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)
-    ), silent = TRUE)
-    fit_Ob <- try(suppressWarnings(
-      lme4::glmer(fO_boot, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)
-    ), silent = TRUE)
+    fit_t  <- try(suppressWarnings(lme4::glmer(f_total_boot,  family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)), silent = TRUE)
+    fit_d  <- try(suppressWarnings(lme4::glmer(f_direct_boot, family = stats::binomial(link = "logit"), data = boot_dat, control = ctrl)), silent = TRUE)
 
-    if (!inherits(fit_Mb, "try-error") && !inherits(fit_Ob, "try-error")) {
-      feM <- try(lme4::fixef(fit_Mb), silent = TRUE)
-      feO <- try(lme4::fixef(fit_Ob), silent = TRUE)
-      if (!inherits(feM, "try-error") && !inherits(feO, "try-error")) {
-        a  <- as.numeric(feM[["T_k"]])
-        b1 <- as.numeric(feO[["T_k"]])
-        b2 <- as.numeric(feO[["X1_ik_vmmc"]])
-        if (all(is.finite(c(a,b1,b2)))) {
-          theta[b, ] <- c(a = a, b1 = b1, b2 = b2)
-          NIE <- a * b2
-          TE  <- b1 + NIE
-          PM[b] <- if (is.finite(TE) && abs(TE) > .Machine$double.eps) NIE / TE else NA_real_
-        }
+    if (!inherits(fit_t, "try-error") && !inherits(fit_d, "try-error")) {
+      fe_t <- try(lme4::fixef(fit_t), silent = TRUE)
+      fe_d <- try(lme4::fixef(fit_d), silent = TRUE)
+      if (!inherits(fe_t, "try-error") && !inherits(fe_d, "try-error")) {
+        a <- as.numeric(fe_t["T_k"])
+        c <- as.numeric(fe_d["T_k"])
+        if (all(is.finite(c(a, c)))) theta[b, ] <- c(a = a, c = c)
       }
     }
 
     if (verbose && b %% msg_every == 0) message("bootstrap: ", b, "/", B)
   }
 
-  # ---------- Percentile CI for PM (pure bootstrap) ----------
-  alpha   <- (1 - level) / 2
-  ci_boot <- stats::quantile(PM, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+  # --- Joint covariance from bootstrap draws
+  Sigma_hat <- stats::cov(theta, use = "pairwise.complete.obs")
 
-  # ---------- Delta-method CI using bootstrapped joint covariance ----------
-  # Gradient PM at point estimates (a0, b10, b20)
-  TE   <- TE0
-  g1   <- (b10 * b20) / (TE^2)     # dPM/da
-  g2   <- -(a0 * b20) / (TE^2)     # dPM/db1
-  g3   <- (a0 * b10) / (TE^2)      # dPM/db2
-  grad <- c(g1, g2, g3)
+  # --- Delta-method CI for PM_diff
+  alpha <- (1 - level) / 2
+  if (is.finite(PM0) && abs(a0) > .Machine$double.eps && all(is.finite(Sigma_hat))) {
+    g1 <-  c0 / (a0^2)  # ∂(1 - c/a)/∂a
+    g2 <- -1  /  a0     # ∂(1 - c/a)/∂c
+    grad <- c(g1, g2)
 
-  Sigma_hat <- stats::cov(theta, use = "pairwise.complete.obs")  # joint cov of (a,b1,b2)
-  var_PM    <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
-  se_PM     <- sqrt(var_PM)
-  z         <- stats::qnorm(1 - alpha)
-  ci_delta  <- PM0 + c(-1, 1) * z * se_PM
+    var_PM <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
+    se_PM  <- sqrt(var_PM)
+    z      <- stats::qnorm(1 - alpha)
+    ci     <- PM0 + c(-1, 1) * z * se_PM
+  } else {
+    se_PM <- NA_real_; ci <- c(NA_real_, NA_real_)
+  }
 
-  # ---------- Return results ----------
   list(
-    point_PM      = PM0,
-    ci_boot_PM    = ci_boot,
-    ci_delta_PM   = ci_delta,
-    boot_draws_PM = PM,
-    boot_theta    = theta,
-    Sigma_hat     = Sigma_hat,
-    settings      = list(B = B, level = level,
-                         force_event_once = force_event_once,
-                         allow_dup_events  = allow_dup_events,
-                         optimizer = "bobyqa", maxfun = 2e5)
+    point_PM    = PM0,                 # PM_diff point estimate
+    ci_delta_PM = ci,                  # delta-method CI using boot Sigma
+    Sigma_hat   = Sigma_hat,           # joint cov of (a, c) from bootstrap
+    a0 = a0, c0 = c0,                  # total & direct log-odds estimates
+    settings = list(B = B, level = level,
+                    force_event_once = force_event_once,
+                    allow_dup_events  = allow_dup_events,
+                    optimizer = "bobyqa", maxfun = 2e5)
   )
 }
+
+# pm_boot_with_delta_glmm <- pm_diff_boot_with_delta_glmm
 ```
 
 ```{r, echo = FALSE, include = FALSE}
 set.seed(123)
-res_glmm <- pm_boot_with_delta_glmm(modelDat_Ind, id = "cluster_id", B = 500)
-res_glmm$point_PM
-res_glmm$ci_boot_PM
-res_glmm$ci_delta_PM
+res_ind_diff_glmm <- pm_diff_boot_with_delta_glmm(modelDat_Ind, id = "cluster_id",
+                                                  B = 500, verbose = TRUE)
+res_ind_diff_glmm$point_PM
+res_ind_diff_glmm$ci_delta_PM
 ```
 
 
@@ -2630,89 +2464,80 @@ GEE CI for PM
 
 ```{r, echo = FALSE, include = FALSE}
 # ------------------------------------------------------------
-# Cluster-bootstrap CI for Proportion Mediated (GEE product method)
-#   Mediator (GEE): X1_ik_vmmc ~ T_k
-#   Outcome  (GEE): Y_ik       ~ T_k + X1_ik_vmmc
-# Effects on logit scale:
-#   NIE = a * b2,  NDE = b1,  TE = b1 + a*b2,  PM = NIE / TE
+# Proportion mediated (DIFFERENCE method, GEE) with cluster bootstrap + delta CI
+#   Total model : Y_ik ~ T_k
+#   Direct model: Y_ik ~ T_k + X1_ik_vmmc
+#
+# PM_diff = 1 - c/a, where:
+#   a = beta_T from total model   (log-odds)
+#   c = beta_T from direct model  (log-odds)
+#
 # Bootstrap design:
-#   * Resample clusters with replacement (size = # unique clusters)
-#   * Force-in ALL clusters that have any Y_ik = 1 at least once
-#   * Stratify by treatment so treated/control cluster counts match original
-#   * For GEE, duplicate draws are given NEW IDs (.boot_id) so working
-#     correlation is computed within each resampled copy separately.
-# Returns: PM point estimate, percentile CI, delta-method CI using boot Sigma.
+#   * Resample clusters with replacement (stratified by T_k),
+#     force-in all clusters with any Y_ik = 1 at least once per draw.
+#   * When a cluster is drawn multiple times, assign a NEW working-corr ID
+#     (.boot_id) so geeglm treats duplicates as distinct groups.
+#   * Fit both GEE models on each boot sample, store (a, c), then
+#     Sigma_hat = cov(cbind(a, c)) and delta-method CI.
 # ------------------------------------------------------------
-pm_boot_with_delta_gee <- function(dat, id = "cluster_id",
-                                   B = 1000, level = 0.95,
-                                   corstr = "exchangeable",
-                                   force_event_once = TRUE,
-                                   allow_dup_events = TRUE,
-                                   seed = NULL, verbose = TRUE) {
-
+pm_diff_boot_with_delta_gee <- function(dat, id = "cluster_id",
+                                        B = 400, level = 0.95,
+                                        corstr = "exchangeable",
+                                        force_event_once = TRUE,
+                                        allow_dup_events  = TRUE,
+                                        seed = NULL, verbose = TRUE) {
   if (!is.null(seed)) set.seed(seed)
   if (!requireNamespace("geepack", quietly = TRUE)) {
-    stop("Package 'geepack' is required for GEE. Please install it.")
+    stop("Package 'geepack' is required. Please install it.")
   }
-
-  # ---------- Basic checks ----------
-  if (!is.data.frame(dat)) stop("`dat` must be a data.frame/tibble.")
-  req <- c(id, "T_k", "X1_ik_vmmc", "Y_ik")
+  stopifnot(is.data.frame(dat))
+  req <- c(id, "Y_ik", "T_k", "X1_ik_vmmc")
   miss <- setdiff(req, names(dat))
-  if (length(miss)) stop("Missing required columns: ", paste(miss, collapse = ", "))
+  if (length(miss)) stop("Missing columns: ", paste(miss, collapse = ", "))
 
-  # ---------- Formulas ----------
-  fM <- stats::as.formula("X1_ik_vmmc ~ T_k")            # mediator
-  fO <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc")     # outcome
+  # --- Formulas
+  f_total  <- stats::as.formula("Y_ik ~ T_k")
+  f_direct <- stats::as.formula("Y_ik ~ T_k + X1_ik_vmmc")
 
-  # ---------- Point estimates on FULL data (GEE) ----------
+  # --- Full-data fits (point estimates)
   id_full <- dat[[id]]
-  fit_M <- suppressWarnings(geepack::geeglm(fM, id = id_full, data = dat,
-                                            family = stats::binomial(link = "logit"), corstr = corstr))
-  fit_O <- suppressWarnings(geepack::geeglm(fO, id = id_full, data = dat,
-                                            family = stats::binomial(link = "logit"), corstr = corstr))
+  fit_total  <- suppressWarnings(geepack::geeglm(f_total,  id = id_full, data = dat,
+                                                 family = stats::binomial(link = "logit"), corstr = corstr))
+  fit_direct <- suppressWarnings(geepack::geeglm(f_direct, id = id_full, data = dat,
+                                                 family = stats::binomial(link = "logit"), corstr = corstr))
 
-  a0  <- stats::coef(fit_M)[["T_k"]]                 # a: T -> X
-  b10 <- stats::coef(fit_O)[["T_k"]]                 # b1: T -> Y | X
-  b20 <- stats::coef(fit_O)[["X1_ik_vmmc"]]          # b2: X -> Y | T
+  a0 <- as.numeric(stats::coef(fit_total )["T_k"])  # total (log-odds)
+  c0 <- as.numeric(stats::coef(fit_direct)["T_k"])  # direct (log-odds)
 
-  NIE0 <- a0 * b20
-  TE0  <- b10 + NIE0
-  PM0  <- if (is.finite(TE0) && abs(TE0) > .Machine$double.eps) NIE0 / TE0 else NA_real_
+  PM0 <- if (is.finite(a0) && abs(a0) > .Machine$double.eps) 1 - c0 / a0 else NA_real_
 
-  # ---------- Cluster-level treatment & event flags ----------
-  # If treatment varies within a cluster, use majority as its label (warn implicitly).
+  # --- Cluster-level T and event flags for stratified resampling
   cl_T <- tapply(dat$T_k, dat[[id]], function(x) {
     u <- unique(x); if (length(u) == 1) u else as.numeric(mean(x, na.rm = TRUE) >= 0.5)
   })
   cl_event <- tapply(dat$Y_ik, dat[[id]], function(y) any(y == 1, na.rm = TRUE))
 
-  cl_t1 <- names(cl_T)[cl_T == 1]
-  cl_t0 <- names(cl_T)[cl_T == 0]
+  cl_t1 <- names(cl_T)[cl_T == 1];  cl_t0 <- names(cl_T)[cl_T == 0]
+  n1 <- length(cl_t1);              n0 <- length(cl_t0)
 
   evt_t1 <- intersect(cl_t1, names(cl_event)[cl_event])
   evt_t0 <- intersect(cl_t0, names(cl_event)[cl_event])
 
-  n1 <- length(cl_t1); n0 <- length(cl_t0)
-
-  # Pools to fill from; optionally allow event clusters to be drawn again
   pool_t1 <- if (allow_dup_events) cl_t1 else setdiff(cl_t1, evt_t1)
   pool_t0 <- if (allow_dup_events) cl_t0 else setdiff(cl_t0, evt_t0)
 
-  # ---------- Helper: build ONE bootstrap dataset w/ NEW GEE IDs ----------
+  # --- Build one bootstrap dataset with NEW GEE IDs (.boot_id)
   make_boot_df <- function() {
-    # 1) choose cluster IDs for this replicate (stratified, force-in event clusters)
-    base <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
+    base    <- if (force_event_once) c(evt_t1, evt_t0) else character(0)
     fill_t1 <- if (n1 - length(evt_t1) > 0) sample(pool_t1, n1 - length(evt_t1), replace = TRUE) else character(0)
     fill_t0 <- if (n0 - length(evt_t0) > 0) sample(pool_t0, n0 - length(evt_t0), replace = TRUE) else character(0)
     samp_ids <- c(base, fill_t1, fill_t0)
 
-    # 2) stack selected clusters; assign a NEW .boot_id per sampled copy
     parts <- vector("list", length(samp_ids))
     for (j in seq_along(samp_ids)) {
       k <- samp_ids[j]
       d <- dat[dat[[id]] == k, , drop = FALSE]
-      d[[".boot_id"]] <- paste0("G", j, "_", k)  # unique working-correlation group
+      d[[".boot_id"]] <- paste0("G", j, "_", k)  # unique working-corr group
       parts[[j]] <- d
     }
     out <- do.call(rbind, parts)
@@ -2720,78 +2545,70 @@ pm_boot_with_delta_gee <- function(dat, id = "cluster_id",
     out
   }
 
-  # ---------- Bootstrap: store theta = (a, b1, b2) and PM ----------
-  theta <- matrix(NA_real_, nrow = B, ncol = 3, dimnames = list(NULL, c("a","b1","b2")))
-  PM     <- rep(NA_real_, B)
+  # --- Bootstrap storage
+  theta <- matrix(NA_real_, nrow = B, ncol = 2, dimnames = list(NULL, c("a","c")))
   if (verbose) msg_every <- max(1, floor(B/10))
 
   for (b in seq_len(B)) {
     boot_dat <- make_boot_df()
     idB <- boot_dat[[".boot_id"]]
 
-    fit_Mb <- try(suppressWarnings(
-      geepack::geeglm(fM, id = idB, data = boot_dat,
-                      family = stats::binomial(link = "logit"), corstr = corstr)
-    ), silent = TRUE)
-    fit_Ob <- try(suppressWarnings(
-      geepack::geeglm(fO, id = idB, data = boot_dat,
+    fit_t <- try(suppressWarnings(
+      geepack::geeglm(f_total,  id = idB, data = boot_dat,
                       family = stats::binomial(link = "logit"), corstr = corstr)
     ), silent = TRUE)
 
-    if (!inherits(fit_Mb, "try-error") && !inherits(fit_Ob, "try-error")) {
-      a  <- suppressWarnings(stats::coef(fit_Mb)[["T_k"]])
-      b1 <- suppressWarnings(stats::coef(fit_Ob)[["T_k"]])
-      b2 <- suppressWarnings(stats::coef(fit_Ob)[["X1_ik_vmmc"]])
-      if (all(is.finite(c(a,b1,b2)))) {
-        theta[b, ] <- c(a = a, b1 = b1, b2 = b2)
-        NIE <- a * b2
-        TE  <- b1 + NIE
-        PM[b] <- if (is.finite(TE) && abs(TE) > .Machine$double.eps) NIE / TE else NA_real_
-      }
+    fit_d <- try(suppressWarnings(
+      geepack::geeglm(f_direct, id = idB, data = boot_dat,
+                      family = stats::binomial(link = "logit"), corstr = corstr)
+    ), silent = TRUE)
+
+    if (!inherits(fit_t, "try-error") && !inherits(fit_d, "try-error")) {
+      a <- suppressWarnings(as.numeric(stats::coef(fit_t)["T_k"]))
+      c <- suppressWarnings(as.numeric(stats::coef(fit_d)["T_k"]))
+      if (all(is.finite(c(a, c)))) theta[b, ] <- c(a = a, c = c)
     }
 
     if (verbose && b %% msg_every == 0) message("bootstrap: ", b, "/", B)
   }
 
-  # ---------- Percentile CI for PM (pure bootstrap) ----------
-  alpha   <- (1 - level) / 2
-  ci_boot <- stats::quantile(PM, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+  # --- Joint covariance from bootstrap draws
+  Sigma_hat <- stats::cov(theta, use = "pairwise.complete.obs")
 
-  # ---------- Delta-method CI using bootstrapped joint covariance ----------
-  TE   <- TE0
-  g1   <- (b10 * b20) / (TE^2)     # dPM/da
-  g2   <- -(a0 * b20) / (TE^2)     # dPM/db1
-  g3   <- (a0 * b10) / (TE^2)      # dPM/db2
-  grad <- c(g1, g2, g3)
+  # --- Delta-method CI for PM_diff
+  alpha <- (1 - level)/2
+  if (is.finite(PM0) && abs(a0) > .Machine$double.eps && all(is.finite(Sigma_hat))) {
+    g1 <-  c0 / (a0^2)   # ∂(1 - c/a)/∂a
+    g2 <- -1  /  a0      # ∂(1 - c/a)/∂c
+    grad <- c(g1, g2)
 
-  Sigma_hat <- stats::cov(theta, use = "pairwise.complete.obs")  # joint cov of (a,b1,b2)
-  var_PM    <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
-  se_PM     <- sqrt(var_PM)
-  z         <- stats::qnorm(1 - alpha)
-  ci_delta  <- PM0 + c(-1, 1) * z * se_PM
+    var_PM <- as.numeric(t(grad) %*% Sigma_hat %*% grad)
+    se_PM  <- sqrt(var_PM)
+    z      <- stats::qnorm(1 - alpha)
+    ci     <- PM0 + c(-1, 1) * z * se_PM
+  } else {
+    ci <- c(NA_real_, NA_real_)
+  }
 
-  # ---------- Return results ----------
   list(
-    point_PM      = PM0,
-    ci_boot_PM    = ci_boot,
-    ci_delta_PM   = ci_delta,
-    boot_draws_PM = PM,
-    boot_theta    = theta,
-    Sigma_hat     = Sigma_hat,
-    settings      = list(B = B, level = level, corstr = corstr,
-                         force_event_once = force_event_once,
-                         allow_dup_events  = allow_dup_events)
+    point_PM    = PM0,                 # PM_diff point estimate
+    ci_delta_PM = ci,                  # delta-method CI using boot Sigma
+    Sigma_hat   = Sigma_hat,           # joint cov of (a, c) from bootstrap
+    a0 = a0, c0 = c0,                  # total & direct log-odds estimates
+    settings = list(B = B, level = level, corstr = corstr,
+                    force_event_once = force_event_once,
+                    allow_dup_events  = allow_dup_events)
   )
 }
 ```
 
 ```{r, echo = FALSE, include = FALSE}
 set.seed(123)
-res_gee <- pm_boot_with_delta_gee(modelDat_Ind, id = "cluster_id",
-                                  B = 300, corstr = "exchangeable")
-res_gee$point_PM
-res_gee$ci_boot_PM
-res_gee$ci_delta_PM
+res_ind_diff_gee <- pm_diff_boot_with_delta_gee(modelDat_Ind, id = "cluster_id",
+                                                B = 350, corstr = "exchangeable",
+                                                verbose = TRUE)
+res_ind_diff_gee$point_PM
+res_ind_diff_gee$ci_delta_PM
 ```
 
 ```{r, echo = FALSE}
@@ -2858,7 +2675,7 @@ print(xtable::xtable(dplyr::select(pm_table, Method, `PM (delta CI)`),
 
 ## Total Proportion Mediated
 
-#### I. Proportion of total effect mediated by male circumcision
+#### J. Proportion of total effect mediated by male circumcision
 
 The proportion of total effect mediated by male circumcision is
 
@@ -2867,15 +2684,15 @@ The proportion of total effect mediated by male circumcision is
 Overall 
 (Or Total Individual + Total Spillover)
 
-$$\frac{[(\beta_1^{\text{IndM}}\times \beta_2^{\text{IndO}}) + (\beta_1^{\text{SpW}} - \beta_1^{\text{SpWR}})]}{(\beta_1^{\text{Overall}})}$$
+$$\frac{[(\beta_1^{\text{Ind}} - \beta_1^{\text{IndD}}) + (\beta_1^{\text{SpW}} - \beta_1^{\text{SpWR}})]}{(\beta_1^{\text{Overall}})}$$
 
 ```{r, include = FALSE}
 Overall_PropMediated <- tibble(
   Model = c("GLM", "GLMM", "GEE"),
   `Proportion of Overall Effect Mediated by Circumcision` = 
-    c(((log(exp_beta_IndM_1)*log(exp_beta_IndO_2)) + (log(exp_beta_SpW_1) - log(exp_beta_SpWR_1)))/(log(exp_beta_overall_1)),
-      ((log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm)) + (log(exp_beta_SpW_1_glmm) - log(exp_beta_SpWR_1_glmm)))/(log(exp_beta_overall_1_glmm)),
-      ((log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee)) + (log(exp_beta_SpW_1_gee) - log(exp_beta_SpWR_1_gee)))/(log(exp_beta_overall_1_gee))))
+    c(((log(exp_beta_Ind_1) - log(exp_beta_IndD_1)) + (log(exp_beta_SpW_1) - log(exp_beta_SpWR_1)))/(log(exp_beta_overall_1)),
+      ((log(exp_beta_Ind_1_glmm) - log(exp_beta_IndD_1_glmm)) + (log(exp_beta_SpW_1_glmm) - log(exp_beta_SpWR_1_glmm)))/(log(exp_beta_overall_1_glmm)),
+      ((log(exp_beta_Ind_1_gee) - log(exp_beta_IndD_1_gee)) + (log(exp_beta_SpW_1_gee) - log(exp_beta_SpWR_1_gee)))/(log(exp_beta_overall_1_gee))))
 ```
 
 ```{r, results = 'asis', echo = FALSE}
@@ -2885,19 +2702,19 @@ print(xtable(Overall_PropMediated,
 ```
 
 
-$$\frac{[(\beta_1^{\text{IndM}}\times \beta_2^{\text{IndO}}) + (\beta_1^{\text{SpW}} - \beta_1^{\text{SpWR}})]}{(\beta_1^{\text{IndO}} + \beta_1^{\text{IndM}} \times \beta_2^{\text{IndO}})+\beta_1^{\text{SpW}}}$$
+$$\frac{[(\beta_1^{\text{Ind}} - \beta_1^{\text{IndD}}) + (\beta_1^{\text{SpW}} - \beta_1^{\text{SpWR}})]}{\beta_1^\text{Ind}+\beta_1^{\text{SpW}}}$$
 
 ```{r, include = FALSE}
-total_glm <- (log(exp_beta_IndO_1)+log(exp_beta_IndM_1)*log(exp_beta_IndO_2))+log(exp_beta_SpW_1)
-total_glmm <- (log(exp_beta_IndO_1_glmm)+log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm))+log(exp_beta_SpW_1_glmm)
-total_gee <- (log(exp_beta_IndO_1_gee)+log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee))+log(exp_beta_SpW_1_gee)
+total_glm <- log(exp_beta_Ind_1) + log(exp_beta_SpW_1)
+total_glmm <- log(exp_beta_Ind_1_glmm) + log(exp_beta_SpW_1_glmm)
+total_gee <- log(exp_beta_Ind_1_gee) + log(exp_beta_SpW_1_gee)
 
 Overall_PropMediated_Alt <- tibble(
   Model = c("GLM", "GLMM", "GEE"),
   `Proportion of Overall Effect Mediated by Circumcision` = 
-    c(((log(exp_beta_IndM_1)*log(exp_beta_IndO_2)) + (log(exp_beta_SpW_1) - log(exp_beta_SpWR_1)))/(total_glm),
-      ((log(exp_beta_IndM_1_glmm)*log(exp_beta_IndO_2_glmm)) + (log(exp_beta_SpW_1_glmm) - log(exp_beta_SpWR_1_glmm)))/(total_glmm),
-      ((log(exp_beta_IndM_1_gee)*log(exp_beta_IndO_2_gee)) + (log(exp_beta_SpW_1_gee) - log(exp_beta_SpWR_1_gee)))/(total_gee)))
+    c(((log(exp_beta_Ind_1) - log(exp_beta_IndD_1)) + (log(exp_beta_SpW_1) - log(exp_beta_SpWR_1)))/(total_glm),
+      ((log(exp_beta_Ind_1_glmm) - log(exp_beta_IndD_1_glmm)) + (log(exp_beta_SpW_1_glmm) - log(exp_beta_SpWR_1_glmm)))/(total_glmm),
+      ((log(exp_beta_Ind_1_gee) - log(exp_beta_IndD_1_gee)) + (log(exp_beta_SpW_1_gee) - log(exp_beta_SpWR_1_gee)))/(total_gee)))
 ```
 
 ```{r, results = 'asis', echo = FALSE}
