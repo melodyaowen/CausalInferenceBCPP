@@ -1,0 +1,236 @@
+---
+title: "Untitled"
+output: pdf_document
+date: "2025-09-12"
+---
+
+---
+title: "Untitled"
+output: pdf_document
+date: "2025-09-12"
+---
+
+## Individual Effects
+
+\underline{Setup}
+
+
+
+```{r}
+# Alternative to fix data availability
+  # Include only those who were circumcised in the treatment
+  # Include everyone in the control
+modelDat_Ind <- modelDat_full_final %>%
+  dplyr::filter(!is.na(vlsupp_ik_y1))
+nrow(modelDat_full_final) - nrow(modelDat_Ind)
+nrow(modelDat_Ind)
+
+tally(X3_ik_y1~vlsupp_ik_y1, data = modelDat_Ind)
+
+tally(X3_ik_y1~vlsupp_ik_y1, data = modelDat_full_final)
+```
+
+
+
+### F. Total Individual Effect Model
+
+"Ind" denotes individual effects, i.e. effects of a male's own treatment assignment on their own outcome. Here, we use the difference method to calculate the direct and indirect effects, with the outcome being $Y_{ik}$, treatment being $T_k$, and mediator being $X_{ik}^{(1, \text{VMMC})}$, whether or not a male has VMMC. The abbreviation "Ind" refers to the total individual effects model, shown below.
+
+
+
+$$logit(Y_{ik}) = \beta_0^{\text{Ind}} + \beta_1^{\text{Ind}}(T_{k})$$
+
+```{r, message = FALSE}
+# Total individual effects model
+
+# Model not accounting for clustering
+model_Ind <- glm(vlsupp_ik_y1 ~ T_k + hiv_began_infected_prop,
+                 family = binomial(link = 'logit'),
+                 data = modelDat_Ind)
+
+# Model accounting for clustering using GLMM
+model_Ind_glmm <- glmer(vlsupp_ik_y1 ~ T_k + hiv_began_infected_prop + (1|cluster_id), # Uses exchangeable
+                        data = modelDat_Ind,
+                        family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_Ind_gee <- geeglm(vlsupp_ik_y1 ~ T_k + hiv_began_infected_prop,
+                        family = binomial(link = "logit"),
+                        id = cluster_id,
+                        data = modelDat_Ind,
+                        corstr = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_Ind_summary <- summary(model_Ind) # Save model summary
+
+exp_beta_Ind_0 <- exp(model_Ind_summary$coefficients[1,1]) # Intercept
+exp_beta_Ind_1 <- exp(model_Ind_summary$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_2 <- exp(model_Ind_summary$coefficients[3,1]) # Prop HIV+
+
+tidy_Ind <- broom::tidy(model_Ind, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_Ind_summary_glmm <- summary(model_Ind_glmm) # Save model summary
+
+exp_beta_Ind_0_glmm <- exp(model_Ind_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_glmm <- exp(model_Ind_summary_glmm$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_2_glmm <- exp(model_Ind_summary_glmm$coefficients[3,1]) # Prop HIV+ Coefficient
+
+tidy_Ind_glmm <- broom.mixed::tidy(model_Ind_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(performance::icc(model_Ind_glmm)$ICC_adjusted[[1]], 3))
+
+# GEE Model
+model_Ind_summary_gee <- summary(model_Ind_gee) # Save model summary
+
+exp_beta_Ind_0_gee <- exp(model_Ind_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_Ind_1_gee <- exp(model_Ind_summary_gee$coefficients[2,1]) # T_k Coefficient
+exp_beta_Ind_2_gee <- exp(model_Ind_summary_gee$coefficients[3,1]) # T_k Coefficient
+
+tidy_Ind_gee <- broom::tidy(model_Ind_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = round(model_Ind_gee$geese$alpha[[1]], 3))
+
+# Overall Output Table for SpW
+Ind_Model_Table <- rbind(tidy_Ind, tidy_Ind_glmm) %>%
+  rbind(tidy_Ind_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(Ind_Model_Table, 
+             caption = "Total Individual Effects Model Output"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+
+
+### G. Direct Individual Effects Model
+
+Now, we regress the outcome, $Y_{ik}$ on the treatment assignment $T_k$ and VMMC mediator $X_{ik}^{(1, \text{VMMC})}$. The abbreviation "IndD" refers to this model, shown below.
+
+$$logit(Y_{ik}) = \beta_0^{\text{IndD}} + \beta_1^{\text{IndD}}(T_{k}) + \beta_2^{\text{IndD}} (X_{ik}^{(1, \text{VMMC})})$$
+
+```{r, warning = FALSE, message = FALSE}
+# Outcome Model for Individual Effect of Treatment Assignment
+
+# Model not accounting for clustering
+model_IndD <- glm(vlsupp_ik_y1 ~ T_k + X3_ik_y1 + hiv_began_infected_prop,
+                  family = binomial(link = 'logit'),
+                  data = modelDat_Ind)
+
+# Model accounting for clustering using GLMM
+model_IndD_glmm <- glmer(vlsupp_ik_y1 ~ T_k + X3_ik_y1 + hiv_began_infected_prop + (1|cluster_id), # Uses exchangeable
+                         data = modelDat_Ind,
+                         family = binomial(link = "logit"))
+
+# Model accounting for clustering using GEE
+model_IndD_gee <- geeglm(vlsupp_ik_y1 ~ T_k + X3_ik_y1 + hiv_began_infected_prop,
+                         family = binomial(link = "logit"),
+                         id = cluster_id,
+                         data = modelDat_Ind,
+                         corstr = "exchangeable") # working correlation
+```
+
+```{r, echo = FALSE}
+# GLM Model
+model_IndD_summary <- summary(model_IndD) # Save model summary
+
+exp_beta_IndD_0 <- exp(model_IndD_summary$coefficients[1,1]) # Intercept
+exp_beta_IndD_1 <- exp(model_IndD_summary$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2 <- exp(model_IndD_summary$coefficients[3,1]) # X3_ik_y1 Coefficient
+exp_beta_IndD_3 <- exp(model_IndD_summary$coefficients[4,1]) # Prop HIV+ Coefficient
+
+tidy_IndD <- broom::tidy(model_IndD, conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = NA)
+
+# GLMM Model
+model_IndD_summary_glmm <- summary(model_IndD_glmm) # Save model summary
+
+exp_beta_IndD_0_glmm <- exp(model_IndD_summary_glmm$coefficients[1,1]) # Intercept
+exp_beta_IndD_1_glmm <- exp(model_IndD_summary_glmm$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2_glmm <- exp(model_IndD_summary_glmm$coefficients[3,1]) # X3_ik_y1 Coefficient
+exp_beta_IndD_2_glmm <- exp(model_IndD_summary_glmm$coefficients[4,1]) # Prop HIV+ Coefficient
+
+tidy_IndD_glmm <- broom.mixed::tidy(model_IndD_glmm, effects = "fixed", 
+                  conf.int = TRUE, exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GLMM",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = 0)
+
+# GEE Model
+model_IndD_summary_gee <- summary(model_IndD_gee) # Save model summary
+
+exp_beta_IndD_0_gee <- exp(model_IndD_summary_gee$coefficients[1,1]) # Intercept
+exp_beta_IndD_1_gee <- exp(model_IndD_summary_gee$coefficients[2,1]) # T_k Coefficient
+exp_beta_IndD_2_gee <- exp(model_IndD_summary_gee$coefficients[3,1]) # X3_ik_y1 Coefficient
+exp_beta_IndD_3_gee <- exp(model_IndD_summary_gee$coefficients[4,1]) # Prop HIV+ Coefficient
+
+tidy_IndD_gee <- broom::tidy(model_IndD_gee, conf.int = TRUE, 
+                            exponentiate = TRUE) %>%
+  dplyr::select(term, estimate, std.error, p.value, conf.low, conf.high) %>%
+  mutate(Model = "GEE",
+         Term = term,
+         `OR [95% CI]` = paste0(round(estimate, 3), " [", 
+                            round(conf.low, 3), ", ", 
+                            round(conf.high, 3), "]"),
+         `p-value` = round(p.value, 3)) %>%
+  dplyr::select(Model, Term, `OR [95% CI]`, `p-value`) %>%
+  dplyr::filter(Term != "(Intercept)") %>%
+  mutate(ICC = abs(round(model_IndD_gee$geese$alpha[[1]], 3)))
+
+# Overall Output Table for SpW
+IndD_Model_Table <- rbind(tidy_IndD, tidy_IndD_glmm) %>%
+  rbind(tidy_IndD_gee)
+```
+
+```{r, results = 'asis', echo = FALSE}
+print(xtable(IndD_Model_Table, 
+             caption = "Direct Individual Effects Model Output"), 
+      type = 'latex', include.rownames = FALSE, comment = FALSE)
+```
+

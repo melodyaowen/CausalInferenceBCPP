@@ -378,6 +378,13 @@ data_hiv_negative_untreated <- data_full %>%
 data_hiv_positive <- data_full %>%
   filter(hiv_status_current == "HIV-infected")
 
+# All HIV positive individuals untreated
+data_hiv_positive_untreated <- data_full %>%
+  filter(hiv_status_current == "HIV-infected",
+         endpoint_coverage_mc %in% c("No", "Female"),
+         endpoint_coverage_htc == "No",
+         endpoint_coverage_onart == "No")
+
 # 5. Save name data and main dataset -------------------------------------------
 
 # Save the main 
@@ -394,6 +401,9 @@ write.csv(data_hiv_negative_untreated, "./0_DataPreparation/CleanDataFiles/data_
 
 # Save all HIV positive individuals
 write.csv(data_hiv_positive, "./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv")
+
+# Save all HIV positive untreated individuals
+write.csv(data_hiv_positive, "./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv")
 
 # Save name data
 write.csv(variable_names_all, "./0_DataPreparation/CleanDataFiles/variable_names_all.csv")
