@@ -16,7 +16,7 @@ source("./2_HelperFunctions/calcIEandPM.R")
 # myOutcome = "Y1_ik"
 # myCovariates = c("prop_began_infected")
 
-# Overall function to get total, direct, indirect effects and proportion mediated
+# General function to get total, direct, indirect effects and proportion mediated
 runMediationAnalysis <- function(roundNumber, # Number of significant digits desired
                                  myData, # Dataset
                                  mySubjectID, # Subject ID name in dataset
@@ -400,10 +400,16 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
   
   # All Causal Effects table 
   full_table_return <- full_table_test %>% # return this
-    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    arrange(factor(Model, levels = c("GLM", "GLMM", "GEE")),
+            factor(Effect, levels = c("Direct", "Indirect", "Indirect Calculated",
+                                      "Total", "PM", "PM Calculated")))
   # All Causal Effects table (OR)
   full_table_or_return <- full_table_or %>% # return this
-    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    arrange(factor(Model, levels = c("GLM", "GLMM", "GEE")),
+            factor(Effect, levels = c("Direct", "Indirect", "Indirect Calculated",
+                                      "Total", "PM", "PM Calculated")))
   
   
   # Create dataset of meta-data about the analysis
@@ -449,5 +455,211 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
   
   return(output_list)
 } # End runMediationAnalysis()
+
+
+# roundNumber = 2 # Number of significant digits desired
+# myData = data_hiv_negative_complete # Dataset
+# mySubjectID = "subject_id" # Subject ID name in dataset
+# myClusterID = "cluster_id" # Cluster ID name in dataset
+# myTreatment = "T_k" # Treatment name in dataset
+# #myComponent = "X1_ik", # Component name in dataset
+# myOutcome = "Y1_ik" # Outcome name in dataset
+# myCovariates = NULL # Vector of covariate names in dataset
+
+
+# Overall analysis code
+# Overall function to get total, direct, indirect effects and proportion mediated
+runOverallAnalysis <- function(roundNumber, # Number of significant digits desired
+                               myData, # Dataset
+                               mySubjectID, # Subject ID name in dataset
+                               myClusterID, # Cluster ID name in dataset
+                               myTreatment, # Treatment name in dataset
+                               #myComponent, # Component name in dataset
+                               myOutcome, # Outcome name in dataset
+                               myCovariates # Vector of covariate names in dataset
+){
+  
+  
+  
+  # Define model formulas for each sub-analysis
+  ## Total effects formula
+  rhs_total <- paste(c(myTreatment, myCovariates), collapse = " + ")
+  formula_total <- stats::as.formula(paste(myOutcome, "~", rhs_total))
+  
+  
+  # Updating model data so that names are consistent
+  modelData <- myData %>%
+    dplyr::select(subject_id = all_of(mySubjectID),
+                  cluster_id = all_of(myClusterID),
+                  all_of(myTreatment), 
+                  all_of(myOutcome), 
+                  all_of(myCovariates))
+  
+  
+  
+  # This is the dataset that excludes people who do not have all of the
+  # treatment, outcome, and mediator.
+  # THen print how many observations are dropped in the models due to 
+  # missing either outcome, treatment, or component
+  mf_complete <- model.frame(formula_total, data = modelData, na.action = na.omit)
+  usedData <- modelData[rownames(mf_complete), , drop = FALSE]
+  
+  cat("\nThere are", nrow(usedData), "out of", nrow(myData), 
+      "observations used in the Individual Effects models.\n", 
+      nrow(myData) - nrow(usedData), "removed due to missing data\n")
+  
+  
+  
+  # INDIVIDUAL TOTAL EFFECTS MODELS --------------------------------------------
+  ## Total GLM
+  model_total_glm <- glm(formula_total,
+                         family = binomial(link = 'logit'),
+                         data = usedData)
+  ## Total GLMM
+  model_total_glmm <- glmer(update(formula_total, . ~ . + (1 | cluster_id)), # Uses exchangeable
+                            family = binomial(link = "logit"),
+                            data = usedData)
+  ## Total GEE
+  model_total_gee <- geeglm(formula_total,
+                            id = cluster_id,
+                            family = binomial(link = "logit"),
+                            corstr = "exchangeable",
+                            data = usedData) # working correlation
+  
+  ## Summary Tables for Total Effects Models
+  ### GLM model table (NOT OR YET)
+  tidy_total_glm_full <- broom::tidy(model_total_glm) %>%
+    dplyr::select(term, estimate, std.error, p.value) %>%
+    mutate(conf.low  = estimate - qnorm(0.975) * std.error,
+           conf.high = estimate + qnorm(0.975) * std.error) %>%
+    mutate(Model = "GLM", 
+           Term = term,
+           Estimate = estimate,
+           Lower = conf.low,
+           Upper = conf.high,
+           `p-value` = p.value,
+           Variance = std.error^2,
+           SE = std.error) %>%
+    dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
+    dplyr::filter(Term != "(Intercept)") %>%
+    mutate(ICC = NA)
+  tidy_total_glm <- dplyr::select(tidy_total_glm_full, -Variance, -SE)
+  tidy_total_glm_or <- tidy_total_glm %>% # OR version of the table
+    mutate(Estimate = exp(Estimate),
+           Lower = exp(Lower),
+           Upper = exp(Upper)) %>%
+    rename(`Estimate (OR)` = Estimate)
+  
+  ### GLMM model table
+  tidy_total_glmm_full <- broom.mixed::tidy(model_total_glmm, effects = "fixed") %>%
+    dplyr::select(term, estimate, std.error, p.value) %>%
+    mutate(conf.low  = estimate - qnorm(0.975) * std.error,
+           conf.high = estimate + qnorm(0.975) * std.error) %>%
+    mutate(Model = "GLMM", 
+           Term = term,
+           Estimate = estimate,
+           Lower = conf.low,
+           Upper = conf.high,
+           `p-value` = p.value,
+           Variance = std.error^2,
+           SE = std.error) %>%
+    dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
+    dplyr::filter(Term != "(Intercept)") %>%
+    mutate(ICC = performance::icc(model_total_glmm, tolerance = 0)$ICC_adjusted[[1]])
+  tidy_total_glmm <- dplyr::select(tidy_total_glmm_full, -Variance, -SE)
+  
+  tidy_total_glmm_or <- tidy_total_glmm %>% # OR version of the table
+    mutate(Estimate = exp(Estimate),
+           Lower = exp(Lower),
+           Upper = exp(Upper)) %>%
+    rename(`Estimate (OR)` = Estimate)
+  
+  ### GEE model table
+  tidy_total_gee_full <- broom::tidy(model_total_gee) %>%
+    dplyr::select(term, estimate, std.error, p.value) %>%
+    mutate(conf.low  = estimate - qnorm(0.975) * std.error,
+           conf.high = estimate + qnorm(0.975) * std.error) %>%
+    mutate(Model = "GEE", 
+           Term = term,
+           Estimate = estimate,
+           Lower = conf.low,
+           Upper = conf.high,
+           `p-value` = p.value,
+           Variance = std.error^2,
+           SE = std.error) %>%
+    dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
+    dplyr::filter(Term != "(Intercept)") %>%
+    mutate(ICC = model_total_gee$geese$alpha[[1]])
+  tidy_total_gee <- dplyr::select(tidy_total_gee_full, -Variance, -SE)
+  
+  tidy_total_gee_or <- tidy_total_gee %>% # OR version of the table
+    mutate(Estimate = exp(Estimate),
+           Lower = exp(Lower),
+           Upper = exp(Upper)) %>%
+    rename(`Estimate (OR)` = Estimate)
+  
+  ### Final Individual Total Effects Table
+  table_total <- bind_rows(tidy_total_glm, tidy_total_glmm) %>%
+    bind_rows(tidy_total_gee)
+  table_total_or <- bind_rows(tidy_total_glm_or, tidy_total_glmm_or) %>%
+    bind_rows(tidy_total_gee_or)
+  
+  table_total_full <- bind_rows(tidy_total_glm_full, tidy_total_glmm_full) %>%
+    bind_rows(tidy_total_gee_full)
+  
+  
+  # GET ALL INFO FOR DE, IE, TE, and PM ----------------------------------------
+  
+  te_full_info_covars <- table_total_full %>%
+    mutate(Effect = "Total") %>%
+    relocate(Model, Term, Effect)
+  
+  te_full_info_covars_or <- te_full_info_covars %>%
+    mutate(Estimate = exp(Estimate),
+           Lower = exp(Lower),
+           Upper = exp(Upper)) %>%
+    rename(`Estimate (OR)` = Estimate)
+  
+  # FINAL TABLES WITH ROUNDING TO RETURN ---------------------------------------
+  
+  # Total effects all model info with covariates
+  te_full_info_covars_return <- te_full_info_covars %>% # return this
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
+  # Total effects all model info with covariates (OR)
+  te_full_info_covars_or_return <- te_full_info_covars_or %>% # return this
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
+  
+  # Create dataset of meta-data about the analysis
+  meta_data <- tibble(
+    `Information` = c("Number of Observations in Inputted Dataset",
+                      
+                      "Number of Observations used in Models",
+                      
+                      "Number of Observations Missing the Treatment Variable",
+                      "Number of Observations Missing the Outcome Variable",
+
+                      "Total Effects Model Formula"
+    ),
+    `Value` = c(paste0(nrow(myData)),
+                
+                paste0(nrow(usedData)),
+                
+                paste0(nrow(dplyr::filter(myData, is.na(.data[[myTreatment]])))),
+                paste0(nrow(dplyr::filter(myData, is.na(.data[[myOutcome]])))),
+
+                paste0(formula_total)
+    )
+  )
+  
+  # All output list
+  output_list <- list(`Meta Data` = meta_data,
+                      
+                      `Total Effects` = te_full_info_covars_return,
+                      `Total Effects (OR)` = te_full_info_covars_or_return
+  )
+  
+  return(output_list)
+} # End runMediationAnalysis()
+
 
 

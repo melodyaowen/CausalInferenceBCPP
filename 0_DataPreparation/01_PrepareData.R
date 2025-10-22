@@ -403,7 +403,7 @@ write.csv(data_hiv_negative_untreated, "./0_DataPreparation/CleanDataFiles/data_
 write.csv(data_hiv_positive, "./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv")
 
 # Save all HIV positive untreated individuals
-write.csv(data_hiv_positive, "./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv")
+write.csv(data_hiv_positive_untreated, "./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv")
 
 # Save name data
 write.csv(variable_names_all, "./0_DataPreparation/CleanDataFiles/variable_names_all.csv")

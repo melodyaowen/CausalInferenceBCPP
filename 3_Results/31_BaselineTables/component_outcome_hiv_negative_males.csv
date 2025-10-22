@@ -1,6 +1,6 @@
 "","Variable","Level","Control","Treatment","Overall","Missing (Overall)"
 "1","Number of Individuals","--","1897","1900","3797",""
-"2","Number of Clusters","--","1897","1900","3797",""
+"2","Number of Clusters","--","15","15","30",""
 "3","Component 1: VMMC","Yes","665 (40%)","852 (52%)","1517 (46%)","487 (13%)"
 "4","","No","991 (60%)","802 (48%)","1793 (54%)",""
 "5","Component 2: HTC","Yes","251 (14%)","246 (14%)","497 (14%)","207 (5%)"

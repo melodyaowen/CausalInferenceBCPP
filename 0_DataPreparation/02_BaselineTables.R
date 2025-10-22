@@ -6,19 +6,28 @@
 source("./RequiredPackages.R")
 
 # Full dataset with no exclusions
-data_full <- read.csv("./0_DataPreparation/CleanDataFiles/data_full.csv", row.names = 1)
+data_full <- read.csv("./0_DataPreparation/CleanDataFiles/data_full.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # HIV negative dataset
-data_hiv_negative <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative.csv", row.names = 1)
+data_hiv_negative <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # HIV negative males dataset
-data_hiv_negative_males <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_males.csv", row.names = 1)
+data_hiv_negative_males <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_males.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # HIV negative untreated dataset
-data_hiv_negative_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_untreated.csv", row.names = 1)
+data_hiv_negative_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_untreated.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # HIV positive dataset
-data_hiv_positive <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv", row.names = 1)
+data_hiv_positive <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
+
+# HIV positive untreated dataset
+data_hiv_positive_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # 1. Define functions for creating tables --------------------------------------
 
@@ -100,7 +109,8 @@ createBaselineTable <- function(roundNumber,
     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Status") %>%
     count(Variable, Status) %>%
     pivot_wider(names_from = Status, values_from = n, values_fill = 0) %>%
-    mutate(Overall = `Missing` + `Not Missing`) %>%
+    # mutate(Overall = `Missing` + `Not Missing`) %>%
+    mutate(Overall = rowSums(across(c(any_of("Not Missing"), any_of("Missing"))), na.rm = TRUE)) %>%
     mutate(`Missing (Overall)` = paste0(Missing, " (", ifelse(round((Missing/Overall)*100, roundNumber) == 0, "<1", 
                                                               round((Missing/Overall)*100, roundNumber)), "%)")) %>%
     dplyr::select(Variable, `Missing (Overall)`)
@@ -226,7 +236,7 @@ createBaselineTable <- function(roundNumber,
     bind_rows(clusterCount) %>%
     bind_rows(baselineTableNumericFinal) %>%
     bind_rows(baselineTableCharacterFinal) %>%
-    left_join(missingColumns, by = "Variable") %>%
+    full_join(missingColumns, by = "Variable") %>%
     bind_rows(clusterTableFinal) %>%
     # Update Variable Order
     mutate(Variable = factor(Variable, levels = varListFinal, 
@@ -247,7 +257,6 @@ createBaselineTable <- function(roundNumber,
   return(outputTable)
   
 } # End createBaselineTable()
-
 
 # Function for component and outcome table
 createComponentOutcomeTable <- function(roundNumber,
@@ -288,7 +297,7 @@ createComponentOutcomeTable <- function(roundNumber,
   
   # Cluster count for each treatment group
   clusterCount <- myData %>%
-    dplyr::select(subject_id = all_of(mySubjectID), 
+    dplyr::select(cluster_id = all_of(myClusterID), 
                   treatment_group = all_of(myTreatmentGroup)) %>%
     mutate(treatment_group = ifelse(treatment_group == 1, "Treatment",
                                     ifelse(treatment_group == 0, "Control", NA))) %>%
@@ -400,20 +409,29 @@ createComponentOutcomeTable <- function(roundNumber,
     mutate(treatment_group = ifelse(treatment_group == 1, "Treatment",
                                     ifelse(treatment_group == 0, "Control", NA))) %>%
     # Change it to be either missing or not missing
-    mutate(across(-c(subject_id, treatment_group), 
-                  ~ if (is.character(.)) {
-                    ifelse(. == "Missing", "Missing", "Not Missing")
-                  } else if (is.numeric(.)) {
-                    ifelse(is.na(.), "Missing", "Not Missing")
-                  } else {
-                    .  # leave other types unchanged
-                  }
-    )) %>%
+    mutate(across(-all_of(c("subject_id", "treatment_group")),
+        ~ {# Per-column branch to avoid warnings on numeric vs character
+          if (is.character(.x) || is.factor(.x)) {
+            ifelse(is.na(.x) | .x == "Missing", "Missing", "Not Missing")
+          } else { ifelse(is.na(.x), "Missing", "Not Missing") }
+        }
+      )) %>%
+    # mutate(across(-c(subject_id, treatment_group), 
+    #               ~ if (is.character(.)) {
+    #                 ifelse(. == "Missing", "Missing", "Not Missing")
+    #               } else if (is.numeric(.)) {
+    #                 ifelse(is.na(.), "Missing", "Not Missing")
+    #               } else {
+    #                 .  # leave other types unchanged
+    #               }
+    # )) %>%
     dplyr::select(-subject_id, -treatment_group) %>%
+    dplyr::select(where(~ any(.x == "Missing", na.rm = TRUE))) %>%
     pivot_longer(cols = everything(), names_to = "Variable", values_to = "Status") %>%
     count(Variable, Status) %>%
     pivot_wider(names_from = Status, values_from = n, values_fill = 0) %>%
-    mutate(Overall = `Missing` + `Not Missing`) %>%
+    #mutate(Overall = `Missing` + `Not Missing`) %>%
+    mutate(Overall = rowSums(across(c(any_of("Missing"), any_of("Not Missing"))), na.rm = TRUE)) %>%
     mutate(`Missing (Overall)` = paste0(Missing, " (", ifelse(round((Missing/Overall)*100, roundNumber) == 0, "<1", 
                                                               round((Missing/Overall)*100, roundNumber)), "%)")) %>%
     dplyr::select(Variable, `Missing (Overall)`)
@@ -433,7 +451,7 @@ createComponentOutcomeTable <- function(roundNumber,
     bind_rows(clusterCount) %>%
     bind_rows(componentOutcomeTableFinal) %>%
     bind_rows(componentPropTableFinal) %>%
-    left_join(missingColumns, by = "Variable") %>%
+    full_join(missingColumns, by = "Variable") %>%
     # Update Variable Order
     mutate(Variable = factor(Variable, levels = varListFinal, 
                              labels = varListLabelsFinal)) %>%
@@ -487,11 +505,13 @@ var_individual_list_names <- c("HIV Status at Study Start",
   
 var_village_list <- c("prop_male",
                       "prop_began_infected",
-                      "hiv_refused_testing_prop")
+                      "hiv_refused_testing_prop",
+                      "prop_vlsupp")
 
 var_village_list_names <- c("Village Proportion of Males in Cluster",
                             "Village Proportion of HIV Infected at Study Start",
-                            "Village Proportion Refused HIV Testing at Study Start")
+                            "Village Proportion Refused HIV Testing at Study Start",
+                            "Village Proportion Virally Suppressed Among HIV+")
 
 var_individual_levels_order <- c("Yes", "No",
                                  
@@ -667,6 +687,32 @@ component_outcome_hiv_positive <- createComponentOutcomeTable(roundNumber = 0,
                                                               myLevelOrder = levelOrder)
 
 
+# HIV POSITIVE UNTREATED DATASET
+baseline_hiv_positive_untreated <- createBaselineTable(roundNumber = 0,
+                                                       myData = data_hiv_positive_untreated,
+                                                       mySubjectID = "subject_id",
+                                                       myClusterID = "cluster_id",
+                                                       myClusterSize = "cluster_size",
+                                                       myTreatmentGroup = "T_k",
+                                                       myVarList = var_individual_list,
+                                                       myVarListLabels = var_individual_list_names,
+                                                       myClusterList = var_village_list,
+                                                       myClusterLabels = var_village_list_names,
+                                                       myLevelOrder = var_individual_levels_order)
+component_outcome_hiv_positive_untreated <- createComponentOutcomeTable(roundNumber = 0,
+                                                                        myData = data_hiv_positive_untreated,
+                                                                        mySubjectID = "subject_id",
+                                                                        myClusterID = "cluster_id",
+                                                                        myTreatmentGroup = "T_k",
+                                                                        myComponentList = componentList,
+                                                                        myComponentLabels = componentLabels,
+                                                                        myComponentPropList = componentPropList,
+                                                                        myComponentPropLabels = componentPropLabels,
+                                                                        myOutcomeList = outcomeList,
+                                                                        myOutcomeLabels = outcomeLabels,
+                                                                        myLevelOrder = levelOrder)
+
+
 # Full dataset with no exclusions tables
 write.csv(baseline_full, "./3_Results/31_BaselineTables/baseline_full.csv")
 write.csv(component_outcome_full, "./3_Results/31_BaselineTables/component_outcome_full.csv")
@@ -686,5 +732,9 @@ write.csv(component_outcome_hiv_negative_untreated, "./3_Results/31_BaselineTabl
 # HIV positive tables
 write.csv(baseline_hiv_positive, "./3_Results/31_BaselineTables/baseline_hiv_positive.csv")
 write.csv(component_outcome_hiv_positive, "./3_Results/31_BaselineTables/component_outcome_hiv_positive.csv")
+
+# HIV positive untreated tables
+write.csv(baseline_hiv_positive_untreated, "./3_Results/31_BaselineTables/baseline_hiv_positive_untreated.csv")
+write.csv(component_outcome_hiv_positive_untreated, "./3_Results/31_BaselineTables/component_outcome_hiv_positive_untreated.csv")
 
 

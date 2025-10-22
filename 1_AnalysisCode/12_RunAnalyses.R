@@ -6,17 +6,23 @@ source("./RequiredPackages.R")
 source("./1_AnalysisCode/11_AnalysisFunctions.R")
 
 # Full dataset with no exclusions
-data_full <- read.csv("./0_DataPreparation/CleanDataFiles/data_full.csv", row.names = 1)
+data_full <- read.csv("./0_DataPreparation/CleanDataFiles/data_full.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 # HIV negative dataset
-data_hiv_negative <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative.csv", row.names = 1)
+data_hiv_negative <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 # HIV negative males dataset
-data_hiv_negative_males <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_males.csv", row.names = 1)
+data_hiv_negative_males <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_males.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 # HIV negative untreated dataset
-data_hiv_negative_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_untreated.csv", row.names = 1)
+data_hiv_negative_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_untreated.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 # HIV positive dataset
-data_hiv_positive <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv", row.names = 1)
-# HIV positive dataset
-data_hiv_positive_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv", row.names = 1)
+data_hiv_positive <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
+# HIV positive untreated dataset
+data_hiv_positive_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv", row.names = 1) %>%
+  mutate(across(where(is.logical), ~ as.numeric(.)))
 
 # 1. Impute Missing Indicators for Datasets ------------------------------------
 
@@ -161,15 +167,63 @@ data_hiv_positive_untreated_complete <- data_hiv_positive_untreated %>%
 # 2. Run Analysis for Component 1: VMMC ----------------------------------------
 
 ## a. Overall Analysis ---------------------------------------------------------
-# Use all HIV- individuals (data_hiv_negative_complete)
+# Use all individuals (data_hiv_negative_complete)
 
+# overall_vmmc_unadjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X1_ik", # Component name in dataset
+#   myOutcome = "Y1_ik", # Outcome name in dataset
+#   myCovariates = NULL # Vector of covariate names in dataset
+# )
+overall_vmmc_unadjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_negative_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X1_ik", # Component name in dataset
+  myOutcome = "Y1_ik", # Outcome name in dataset
+  myCovariates = NULL # Vector of covariate names in dataset
+)
+write_xlsx(overall_vmmc_unadjusted, 
+           "./3_Results/32_ResultsVMMC/vmmc_overall_unadjusted.xlsx")
+
+# # Adjusted analysis (with covariates)
+# overall_vmmc_adjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X1_ik", # Component name in dataset
+#   myOutcome = "Y1_ik", # Outcome name in dataset
+#   myCovariates = chosenCovars # Vector of covariate names in dataset
+# )
+
+# Adjusted analysis (with covariates)
+overall_vmmc_adjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_negative_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X1_ik", # Component name in dataset
+  myOutcome = "Y1_ik", # Outcome name in dataset
+  myCovariates = chosenCovars # Vector of covariate names in dataset
+)
+write_xlsx(overall_vmmc_adjusted, 
+           "./3_Results/32_ResultsVMMC/vmmc_overall_adjusted.xlsx")
 
 ## b. Individual Analysis ------------------------------------------------------
 # Use all HIV- males (data_hiv_negative_males_complete)
 
 # Unadjusted analysis (no covariates)
 individual_vmmc_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_males_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -183,7 +237,7 @@ write_xlsx(individual_vmmc_unadjusted,
 
 # Adjusted analysis (with covariates)
 individual_vmmc_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_males_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -200,7 +254,7 @@ write_xlsx(individual_vmmc_adjusted,
 
 # Unadjusted analysis (no covariates)
 spillover_vmmc_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -214,7 +268,7 @@ write_xlsx(spillover_vmmc_unadjusted,
 
 # Adjusted analysis (with covariates)
 spillover_vmmc_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -229,15 +283,66 @@ write_xlsx(spillover_vmmc_adjusted,
 # 3. Run Analysis for Component 2: HTC -----------------------------------------
 
 ## a. Overall Analysis ---------------------------------------------------------
-# Use all HIV- individuals (data_hiv_negative_complete)
+# Use all individuals (data_hiv_negative_complete)
 
+# # Unadjusted analysis (no covariates)
+# overall_htc_unadjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X2_ik", # Component name in dataset
+#   myOutcome = "Y1_ik", # Outcome name in dataset
+#   myCovariates = NULL # Vector of covariate names in dataset
+# )
+
+# Unadjusted analysis (no covariates)
+overall_htc_unadjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_negative_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X2_ik", # Component name in dataset
+  myOutcome = "Y1_ik", # Outcome name in dataset
+  myCovariates = NULL # Vector of covariate names in dataset
+)
+write_xlsx(overall_htc_unadjusted, 
+           "./3_Results/33_ResultsHTC/htc_overall_unadjusted.xlsx")
+
+# # Adjusted analysis (with covariates)
+# overall_htc_adjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X2_ik", # Component name in dataset
+#   myOutcome = "Y1_ik", # Outcome name in dataset
+#   myCovariates = chosenCovars # Vector of covariate names in dataset
+# )
+
+# Adjusted analysis (with covariates)
+overall_htc_adjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_negative_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X2_ik", # Component name in dataset
+  myOutcome = "Y1_ik", # Outcome name in dataset
+  myCovariates = chosenCovars # Vector of covariate names in dataset
+)
+write_xlsx(overall_htc_adjusted, 
+           "./3_Results/33_ResultsHTC/htc_overall_adjusted.xlsx")
 
 ## b. Individual Analysis ------------------------------------------------------
 # Use all HIV- individuals (data_hiv_negative_complete)
 
 # Unadjusted analysis (no covariates)
 individual_htc_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -251,7 +356,7 @@ write_xlsx(individual_htc_unadjusted,
 
 # Adjusted analysis (with covariates)
 individual_htc_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -268,7 +373,7 @@ write_xlsx(individual_htc_adjusted,
 
 # Unadjusted analysis (no covariates)
 spillover_htc_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -282,7 +387,7 @@ write_xlsx(spillover_htc_unadjusted,
 
 # Adjusted analysis (with covariates)
 spillover_htc_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_negative_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -297,14 +402,66 @@ write_xlsx(spillover_htc_adjusted,
 # 4. Run Analysis for Component 3: ART -----------------------------------------
 
 ## a. Overall Analysis ---------------------------------------------------------
-# Use all HIV+ (data_hiv_positive_complete)
+# Use all individuals (data_full_complete)
+
+# # Unadjusted analysis (no covariates)
+# overall_art_unadjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X3_ik", # Component name in dataset
+#   myOutcome = "Y2_ik", # Outcome name in dataset
+#   myCovariates = NULL # Vector of covariate names in dataset
+# )
+
+# Unadjusted analysis (no covariates)
+overall_art_unadjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_positive_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X3_ik", # Component name in dataset
+  myOutcome = "Y2_ik", # Outcome name in dataset
+  myCovariates = NULL # Vector of covariate names in dataset
+)
+write_xlsx(overall_art_unadjusted, 
+           "./3_Results/34_ResultsART/art_overall_unadjusted.xlsx")
+
+# # Adjusted analysis (with covariates)
+# overall_art_adjusted <- runMediationAnalysis(
+#   roundNumber = 2, # Number of significant digits desired
+#   myData = data_full_complete, # Dataset
+#   mySubjectID = "subject_id", # Subject ID name in dataset
+#   myClusterID = "cluster_id", # Cluster ID name in dataset
+#   myTreatment = "T_k", # Treatment name in dataset
+#   myComponent = "X3_ik", # Component name in dataset
+#   myOutcome = "Y2_ik", # Outcome name in dataset
+#   myCovariates = chosenCovars # Vector of covariate names in dataset
+# )
+
+overall_art_adjusted <- runOverallAnalysis(
+  roundNumber = 2, # Number of significant digits desired
+  myData = data_hiv_positive_complete, # Dataset
+  mySubjectID = "subject_id", # Subject ID name in dataset
+  myClusterID = "cluster_id", # Cluster ID name in dataset
+  myTreatment = "T_k", # Treatment name in dataset
+  #myComponent = "X3_ik", # Component name in dataset
+  myOutcome = "Y2_ik", # Outcome name in dataset
+  myCovariates = chosenCovars # Vector of covariate names in dataset
+)
+write_xlsx(overall_art_adjusted, 
+           "./3_Results/34_ResultsART/art_overall_adjusted.xlsx")
+
 
 ## b. Individual Analysis ------------------------------------------------------
 # Use all HIV+ (data_hiv_positive_complete)
 
 # Unadjusted analysis (no covariates)
 individual_art_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_positive_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -318,7 +475,7 @@ write_xlsx(individual_art_unadjusted,
 
 # Adjusted analysis (with covariates)
 individual_art_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_positive_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -335,7 +492,7 @@ write_xlsx(individual_art_adjusted,
 
 # Unadjusted analysis (no covariates)
 spillover_art_unadjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_positive_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
@@ -347,9 +504,13 @@ spillover_art_unadjusted <- runMediationAnalysis(
 write_xlsx(spillover_art_unadjusted, 
            "./3_Results/34_ResultsART/art_spillover_unadjusted.xlsx")
 
+# tally(~Y2_ik, data = data_hiv_positive_untreated_complete)
+# favstats(~Z3_k, data = data_hiv_positive_untreated_complete)
+# favstats(Z3_k~Y2_ik, data = data_hiv_positive_untreated_complete)
+
 # Adjusted analysis (with covariates)
 spillover_art_adjusted <- runMediationAnalysis(
-  roundNumber = 3, # Number of significant digits desired
+  roundNumber = 2, # Number of significant digits desired
   myData = data_hiv_positive_untreated_complete, # Dataset
   mySubjectID = "subject_id", # Subject ID name in dataset
   myClusterID = "cluster_id", # Cluster ID name in dataset
