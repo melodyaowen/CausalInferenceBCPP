@@ -137,24 +137,25 @@ data_hiv_positive_untreated_complete <- data_hiv_positive_untreated %>%
   )
 
 # Define covariates that we want to consider for all analyses
-# chosenCovars = c("gender", # 0 missing
-#                  "age", # 0 missing
-#                  "marital_status", # 2 missing in full dataset
-#                  "education", # 45 missing in full dataset
-#                  "monthly_income", # 13 missing in full dataset
-#                  "alcohol_weekly", # 555 missing in full dataset
-#                  "partners_12mos", # 995 missing in full dataset
-# 
-#                  "prop_began_infected", # No missing
-#                  "prop_male", # No missing
-#                  "prop_vlsupp" # No missing
-#                  )
-# 
-# chosenInteractions = c("T_k*gender",
-#                        "T_k*age",
-#                        "T_k*monthly_income",
-#                        "T_k*prop_began_infected"
-#                        )
+chosenCovars = c("gender", # 0 missing
+                 "age", # 0 missing
+                 "marital_status", # 2 missing in full dataset
+                 "education", # 45 missing in full dataset
+                 "monthly_income", # 13 missing in full dataset
+                 "alcohol_weekly", # 555 missing in full dataset
+                 "partners_12mos", # 995 missing in full dataset
+                 
+                 "prop_began_infected", # No missing
+                 "prop_male", # No missing
+                 "prop_vlsupp" # No missing
+                 )
+
+chosenInteractions = c("T_k*gender",
+                       "T_k*age",
+                       "T_k*monthly_income",
+                       "T_k*education",
+                       "T_k*prop_began_infected"
+                       )
 
 # 2. Run Overall Effects Analysis ----------------------------------------------
 
@@ -192,21 +193,11 @@ individual_vmmc_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X1_ik", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c(#"gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-                   ), # Vector of covariate names in dataset
+  myCovariates = setdiff(chosenCovars, "gender"), # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(individual_vmmc_adjusted, 
            "./3_Results/32_ResultsVMMC/vmmc_individual_adjusted.xlsx")
@@ -220,26 +211,13 @@ individual_vmmc_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X1_ik", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c(#"gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-                   ), # Vector of covariate names in dataset
-  myInteractions = c(#"T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = setdiff(chosenCovars, "gender"), # Vector of covariate names in dataset
+  myInteractions = setdiff(chosenInteractions, "T_k*gender"),
   myForcedTerms = dplyr::filter(individual_vmmc_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(individual_vmmc_interaction,
            "./3_Results/32_ResultsVMMC/vmmc_individual_interaction.xlsx")
@@ -273,21 +251,11 @@ spillover_vmmc_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z1_k", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-                   ), # Vector of covariate names in dataset
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(spillover_vmmc_adjusted, 
            "./3_Results/32_ResultsVMMC/vmmc_spillover_adjusted.xlsx")
@@ -301,26 +269,13 @@ spillover_vmmc_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z1_k", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-                   ), # Vector of covariate names in dataset
-  myInteractions = c("T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = chosenCovariates, # Vector of covariate names in dataset
+  myInteractions = chosenInteractions,
   myForcedTerms = dplyr::filter(spillover_vmmc_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(spillover_vmmc_interaction,
            "./3_Results/32_ResultsVMMC/vmmc_spillover_interaction.xlsx")
@@ -356,21 +311,11 @@ individual_htc_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X2_ik", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(individual_htc_adjusted, 
            "./3_Results/33_ResultsHTC/htc_individual_adjusted.xlsx")
@@ -384,26 +329,13 @@ individual_htc_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X2_ik", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
-  myInteractions = c("T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
+  myInteractions = chosenInteractions,
   myForcedTerms = dplyr::filter(individual_htc_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(individual_htc_interaction, 
            "./3_Results/33_ResultsHTC/htc_individual_interaction.xlsx")
@@ -437,21 +369,11 @@ spillover_htc_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z2_k", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(spillover_htc_adjusted, 
            "./3_Results/33_ResultsHTC/htc_spillover_adjusted.xlsx")
@@ -465,26 +387,13 @@ spillover_htc_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z2_k", # Component name in dataset
   myOutcome = "Y1_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
-  myInteractions = c("T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
+  myInteractions = chosenInteractions,
   myForcedTerms = dplyr::filter(spillover_htc_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(spillover_htc_interaction, 
            "./3_Results/33_ResultsHTC/htc_spillover_interaction.xlsx")
@@ -520,21 +429,11 @@ individual_art_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X3_ik", # Component name in dataset
   myOutcome = "Y2_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(individual_art_adjusted, 
            "./3_Results/34_ResultsART/art_individual_adjusted.xlsx")
@@ -549,26 +448,13 @@ individual_art_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "X3_ik", # Component name in dataset
   myOutcome = "Y2_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
-  myInteractions = c("T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
+  myInteractions = chosenInteractions,
   myForcedTerms = dplyr::filter(individual_art_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(individual_art_interaction, 
            "./3_Results/34_ResultsART/art_individual_interaction.xlsx")
@@ -606,21 +492,11 @@ spillover_art_adjusted <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z3_k", # Component name in dataset
   myOutcome = "Y2_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
+  myCovariates = chosenCOvars, # Vector of covariate names in dataset
   myInteractions = NULL,
   myForcedTerms = NULL,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "p"
 )
 write_xlsx(spillover_art_adjusted, 
            "./3_Results/34_ResultsART/art_spillover_adjusted.xlsx")
@@ -635,26 +511,13 @@ spillover_art_interaction <- runMediationAnalysis(
   myTreatment = "T_k", # Treatment name in dataset
   myComponent = "Z3_k", # Component name in dataset
   myOutcome = "Y2_ik", # Outcome name in dataset
-  myCovariates = c("gender", # 0 missing
-                   "age", # 0 missing
-                   "marital_status", # 2 missing in full dataset
-                   "education", # 45 missing in full dataset
-                   "monthly_income", # 13 missing in full dataset
-                   "alcohol_weekly", # 555 missing in full dataset
-                   "partners_12mos", # 995 missing in full dataset
-                   
-                   "prop_began_infected", # No missing
-                   "prop_male", # No missing
-                   "prop_vlsupp" # No missing
-  ), # Vector of covariate names in dataset
-  myInteractions = c("T_k*gender",
-                     "T_k*age",
-                     "T_k*monthly_income",
-                     "T_k*prop_began_infected"),
+  myCovariates = chosenCovars, # Vector of covariate names in dataset
+  myInteractions = chosenInteractions,
   myForcedTerms = dplyr::filter(spillover_art_adjusted$`Covariate List`,
                                 !is.na(`Final Covariates`), 
                                 `Final Covariates` != "T_k")$`Final Covariates`,
-  myCutoff = 0.2
+  myCutoff = 0.2,
+  mySelectionCriteria = "LRT"
 )
 write_xlsx(spillover_art_interaction, 
            "./3_Results/34_ResultsART/art_spillover_interaction.xlsx")

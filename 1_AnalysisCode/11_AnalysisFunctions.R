@@ -19,7 +19,8 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
                                  myCovariates, # Vector of covariate names in dataset
                                  myInteractions, # Interactions desired
                                  myForcedTerms = NULL, # Terms that must remain in the model
-                                 myCutoff = NULL # P-value cutoff for model selection
+                                 myCutoff = NULL, # P-value cutoff for model selection
+                                 mySelectionCriteria = "p"
                                  ){
   
   
@@ -52,7 +53,7 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
   
   cat("\nThere are", nrow(usedData), "out of", nrow(myData), 
       "observations used in the models.\n", 
-      nrow(myData) - nrow(usedData), "removed due to missing data\n")
+      nrow(myData) - nrow(usedData), "removed due to missing data\n\n")
   
   
   # FIT BOTH TOTAL AND DIRECT EFFECTS MODELS -----------------------------------
@@ -60,6 +61,8 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
   
   # If there are no covariates or interactions, just run the model plainly
   if(is.null(myCovariates) & is.null(myInteractions)){
+    
+    cat("Fitting model with no variable selection.\n\n")
     
     ## Total GLMM unadjusted
     model_total_glmm <- glmer(update(formula_total, . ~ . + (1 | cluster_id)), # Uses exchangeable
@@ -85,13 +88,21 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
     # Case when we have covariates or interactions
   } else if(!is.null(myCovariates) | !is.null(myInteractions)){
     
-    ## Total GLMM adjusted, backwards selection
+    if(mySelectionCriteria != "LRT" & mySelectionCriteria != "p"){
+      stop("Must select selection criteria 'LRT' or 'p'.")
+    }
+    
+    cat(paste0("Performing variable selection based off of ", mySelectionCriteria, "\n\n"))
+    
     model_total_glmm_list <- backward_glmer_p(myFormulaGLMM = formula_total,
                                               myDataGLMM = usedData,
                                               clusterID = myClusterID,
                                               required_terms = c(myTreatment, 
                                                                  myForcedTerms),
-                                              pCutoff = myCutoff)
+                                              pCutoff = myCutoff,
+                                              selectionCriteria = mySelectionCriteria)
+    
+    
     
     # Data frame to output comparing inputted variables to removed variables
     length_temp <- max(length(c(myCovariates, myInteractions)),

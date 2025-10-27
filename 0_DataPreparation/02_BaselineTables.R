@@ -493,15 +493,16 @@ var_individual_list <- c("hiv_status_current",
                          "age",
                          "marital_status",
                          "education",
-                         "alcohol_weekly",
-                         "partners_12mos",
-                         "employment_status",
                          "monthly_income",
-                         "length_residence",
-                         "partners_lifetime",
-                         "overall_access",
-                         "exchange_12mos",
-                         "condom_lastsex")
+                         "alcohol_weekly",
+                         "partners_12mos"
+                         #"employment_status",
+                         #"length_residence",
+                         #"partners_lifetime",
+                         #"overall_access",
+                         #"exchange_12mos",
+                         #"condom_lastsex"
+                         )
 
 # Individual level variable labels
 var_individual_list_names <- c("HIV Status at Study Start",
@@ -509,26 +510,27 @@ var_individual_list_names <- c("HIV Status at Study Start",
                                "Age",
                                "Marital Status",
                                "Education",
-                               "Weekly Alcohol Consumption",
-                               "Number of Partners (Last 12 Months)",
-                               "Employment Status",
                                "Monthly Income",
-                               "Length in Current Residence",
-                               "Number of Partners (Lifetime)",
-                               "Has Access to Healthcare",
-                               "Transactional Sex Ever",
-                               "Condom Use in Last Sexual Encounter")
+                               "Weekly Alcohol Consumption",
+                               "Number of Partners (Last 12 Months)"
+                               #"Employment Status",
+                               #"Length in Current Residence",
+                               #"Number of Partners (Lifetime)",
+                               #"Has Access to Healthcare",
+                               #"Transactional Sex Ever",
+                               #"Condom Use in Last Sexual Encounter"
+                               )
 
 # Villager level variables
-var_village_list <- c("prop_male",
-                      "prop_began_infected",
-                      "hiv_refused_testing_prop",
+var_village_list <- c("prop_began_infected",
+                      "prop_male",
+                      #"hiv_refused_testing_prop",
                       "prop_vlsupp")
 
 # Village level variable labels
-var_village_list_names <- c("Village Proportion of Males in Cluster",
-                            "Village Proportion of HIV Infected at Study Start",
-                            "Village Proportion Refused HIV Testing at Study Start",
+var_village_list_names <- c("Village Proportion of HIV Infected at Study Start",
+                            "Village Proportion of Males in Cluster",
+                            #"Village Proportion Refused HIV Testing at Study Start",
                             "Village Proportion Virally Suppressed Among HIV+")
 
 # Village level variables level order

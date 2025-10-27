@@ -4,7 +4,8 @@ backward_glmer_p <- function(myFormulaGLMM,
                              myDataGLMM, 
                              clusterID = "cluster_id",
                              required_terms = c("T_k"),
-                             pCutoff = 0.20) {
+                             pCutoff = 0.20,
+                             selectionCriteria = "p") {
   
   ctrl_harder <- glmerControl(
     optimizer = "bobyqa",                 # generally more stable than Nelder–Mead
@@ -61,10 +62,19 @@ backward_glmer_p <- function(myFormulaGLMM,
                         family = binomial(link = "logit"), 
                         control = ctrl_harder)
     
-    # Wald p-values for whole terms
-    wald_tab <- car::Anova(fitCurrent, type = 3)
-    
-    
+    # Selection criteria 
+    if(selectionCriteria == "LRT"){
+      # LRTs for each variable
+      lrt_tab <- drop1(fitCurrent, test = "Chisq")
+      criteria_tab <- lrt_tab
+      
+    } else if(selectionCriteria == "p"){
+      # Wald p-values for whole terms
+      wald_tab <- car::Anova(fitCurrent, type = 3)
+      criteria_tab <- wald_tab
+      
+    } else(stop("Must select selection criteria 'LRT' or 'p'."))
+
     # If nothing else in the candidate vector of variables to remove,
     # break out of the forloop
     if (length(cand) == 0L){
@@ -73,13 +83,14 @@ backward_glmer_p <- function(myFormulaGLMM,
     }
     
     # Look at only candidate terms to drop
-    drop_tab <- wald_tab[rownames(wald_tab) %in% cand, , drop = FALSE]
+    drop_tab <- criteria_tab[rownames(criteria_tab) %in% cand, , 
+                             drop = FALSE]
     
     # Get only the variable name (ID) and p value (P)
     drop_tibble <- drop_tab %>%
       rownames_to_column(var = "ID") %>%
       as_tibble() %>%
-      dplyr::select(ID, P = `Pr(>Chisq)`)
+      dplyr::select(ID, P = contains("Pr"))
     
     # Printing current p-values to make sure things are running smoothly
     drop_matrix <- as.matrix(drop_tibble)
