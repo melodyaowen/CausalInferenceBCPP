@@ -57,6 +57,10 @@ variable_names_keep <- variable_names_all %>%
                                # Outcomes
                                "endpoint_seroconvert", # HIV seroconversion at end of 3 years
                                "endpoint_death", # Death by study completion
+                               
+                               #"death_group_cause", # Checked these on 10/22,
+                               #"death_primary_cause", # no other data to be gained for mortality
+                               #"death_days",
 
                                # Individual covariates
                                "gender", # Gender
@@ -65,7 +69,8 @@ variable_names_keep <- variable_names_all %>%
                                "education", # Highest education level
                                "employment_status", # employment status
                                "monthly_income", # Monthly income
-                               "partners_12mos", # Number of sexual partners in past year
+                               "partners_12mos", # Number of sexual partners in past 12 months
+                               "alcohol", # How often used alcohol in past 12 months
                                
                                "length_residence", # How long lived in this community
                                "partners_lifetime", # Total number of sexual partners in lifetime
@@ -119,6 +124,9 @@ data_full <- full_join(data_y1_renamed, data_y2_renamed, by = "de_subj_idC") %>%
                             ifelse(!is.na(community_y2), community_y2,
                                    community_y3))) %>%
   dplyr::select(-community_y1, -community_y2, -community_y3) %>%
+  
+  # Geographic location
+  mutate(location = community) %>%
   
   # Age
   mutate(age = ifelse(!is.na(age_at_interview_y1), age_at_interview_y1,
@@ -266,6 +274,20 @@ data_full <- full_join(data_y1_renamed, data_y2_renamed, by = "de_subj_idC") %>%
                                         ifelse(!is.na(marital_status_y3), marital_status_y3, NA)))) %>%
   dplyr::select(-marital_status_y1, -marital_status_y2, -marital_status_y3) %>%
   
+  # Alcohol consumption in the past 12 months
+  mutate(alcohol_12mos = alcohol_y1) %>%
+  dplyr::select(-alcohol_y1) %>%
+  
+  # Weekly alcohol consumption
+  mutate(alcohol_weekly = case_when(alcohol_12mos == "2 to 3 times a week" ~ "3",
+                                    alcohol_12mos == "Less then once a week" ~ "1",
+                                    alcohol_12mos == "more than 3 times a week" ~ "4",
+                                    alcohol_12mos == "Never" ~ "0",
+                                    alcohol_12mos == "Once a week" ~ "2",
+                                    TRUE ~ NA_character_),
+         alcohol_weekly = as.numeric(alcohol_weekly)
+         ) %>%
+  
   # Prob alcohol/drug in the community
   mutate(prob_alcohol_drug = ifelse(!is.na(prob_alcohol_drug_y1), prob_alcohol_drug_y1,
                                  ifelse(!is.na(prob_alcohol_drug_y2), prob_alcohol_drug_y2, NA))) %>%
@@ -326,11 +348,25 @@ data_full <- full_join(data_y1_renamed, data_y2_renamed, by = "de_subj_idC") %>%
                         ifelse(endpoint_coverage_htc == "No", 0, NA))) %>%
   mutate(X3_ik = ifelse(endpoint_coverage_onart == "Yes", 1,
                         ifelse(endpoint_coverage_onart == "No", 0, NA))) %>%
+  mutate(Xany_ik = ifelse(gender == "Male" & hiv_status_current == "HIV-uninfected",
+                          ifelse(X1_ik == 1 | X2_ik == 1, 1, 0),
+                          ifelse(gender == "Female" & hiv_status_current == "HIV-uninfected", 
+                                 X2_ik, NA)),
+         Xany_ik = replace_na(Xany_ik, 0)) %>%
+  mutate(Xany_ik = ifelse(hiv_status_current == "HIV-infected",
+                          ifelse(X3_ik == 1, 1, 0), Xany_ik),
+         Xany_ik = replace_na(Xany_ik, 0)) %>%
+  
   mutate(Y1_ik = ifelse(endpoint_seroconvert == "Yes", 1, 
-                        ifelse(endpoint_seroconvert == "No", 0, NA))) %>%
-  mutate(Y2_ik = ifelse(endpoint_death == "Yes", 1, 0)) %>%
+                        ifelse(endpoint_seroconvert == "No", 0, NA))) %>% # HIV seroconversion endpoint
+  mutate(Y2_ik = ifelse(endpoint_death == "Yes", 1, 0)) %>% # Death endpoint
   mutate(Y3_ik = ifelse(endpoint_coverage_vlsupp == "Yes", 1, 
-                        ifelse(endpoint_coverage_vlsupp == "No", 0, NA))) %>%
+                        ifelse(endpoint_coverage_vlsupp == "No", 0, NA))) %>% # Viral suppression endpoint
+  
+  mutate(endpoint_coverage_any = ifelse(hiv_status_current == "HIV-infected",
+                                        "HIV-infected", 
+                                        ifelse(Xany_ik == 1, "Yes",
+                                               ifelse(Xany_ik == 0, "No", NA)))) %>%
   
   # Count variables
   group_by(cluster_id) %>%
@@ -338,10 +374,15 @@ data_full <- full_join(data_y1_renamed, data_y2_renamed, by = "de_subj_idC") %>%
   # Counts in each cluster
   mutate(male_count = sum(gender == "Male", na.rm = TRUE),
          began_hiv_infected_count = sum(hiv_status_current == "HIV-infected", na.rm = TRUE),
+         began_hiv_uninfected_count = sum(hiv_status_current == "HIV-uninfected", na.rm = TRUE),
          refused_hiv_testing_count = sum(hiv_status_current == "Refused HIV testing", na.rm = TRUE),
          vmmc_count = sum(endpoint_coverage_mc == "Yes", na.rm = TRUE),
          htc_count = sum(endpoint_coverage_htc == "Yes", na.rm = TRUE),
          art_count = sum(endpoint_coverage_onart == "Yes", na.rm = TRUE),
+         
+         any_count_hivpos = sum(Xany_ik == 1 & hiv_status_current == "HIV-infected", na.rm = TRUE),
+         any_count_hivneg = sum(Xany_ik == 1 & hiv_status_current == "HIV-uninfected", na.rm = TRUE),
+         
          vlsupp_count = sum(endpoint_coverage_vlsupp == "Yes", na.rm = TRUE)
   ) %>%
   ungroup() %>%
@@ -350,6 +391,9 @@ data_full <- full_join(data_y1_renamed, data_y2_renamed, by = "de_subj_idC") %>%
   mutate(Z1_k = vmmc_count/male_count, # Proportion of men VMMC in cluster
          Z2_k = htc_count/cluster_size, # Proportion of subjects HTC in cluster
          Z3_k = art_count/began_hiv_infected_count, # Proportion of HIV+ on ART in cluster
+         
+         Zany_k_hivpos = any_count_hivpos/began_hiv_infected_count,
+         Zany_k_hivneg = any_count_hivneg/began_hiv_uninfected_count,
          
          prop_male = male_count/cluster_size, # Proportion of males in cluster
          prop_vlsupp = vlsupp_count/began_hiv_infected_count, # Proportion viral suppressed among HIV+ in cluster
@@ -374,6 +418,11 @@ data_hiv_negative_untreated <- data_full %>%
          endpoint_coverage_mc %in% c("No", "Female"),
          endpoint_coverage_htc == "No")
 
+# endpoint_coverage_mc original
+# Female     No    Yes   <NA> 
+#   8340   1793   1514   1484 
+# 4 more "Yes" cases were gotten from using circumcision days data
+
 # All HIV positive individuals
 data_hiv_positive <- data_full %>%
   filter(hiv_status_current == "HIV-infected")
@@ -381,8 +430,6 @@ data_hiv_positive <- data_full %>%
 # All HIV positive individuals untreated
 data_hiv_positive_untreated <- data_full %>%
   filter(hiv_status_current == "HIV-infected",
-         endpoint_coverage_mc %in% c("No", "Female"),
-         endpoint_coverage_htc == "No",
          endpoint_coverage_onart == "No")
 
 # 5. Save name data and main dataset -------------------------------------------
@@ -407,3 +454,7 @@ write.csv(data_hiv_positive_untreated, "./0_DataPreparation/CleanDataFiles/data_
 
 # Save name data
 write.csv(variable_names_all, "./0_DataPreparation/CleanDataFiles/variable_names_all.csv")
+
+
+
+

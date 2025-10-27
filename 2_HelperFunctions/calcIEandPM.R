@@ -277,33 +277,21 @@ calcIEandPM_glmm <- function(formula,
   covar <- cov.gee[dimnames(cov.gee)[[1]] == exposure, 
                    dimnames(cov.gee)[[2]] == paste0(exposure, ".star")]
 
-  if (pm < 0 | pm > 1) {
-    warning("Crude PM estimate not within [0,1]. Either NIE and NDE are in opposing directions or M is not a mediator. Inference for NIE only")
-    var.nie <- v + v.star - 2 * covar
-    nie.pval <- 2 * pnorm(abs(nie)/sqrt(var.nie), lower.tail = F)
-    nie.ci <- nie + c(qnorm(alp.conf), qnorm(1 - alp.conf)) * 
-      sqrt(var.nie)
-    back$alter <- "two-sided"
-    back$nie.pval <- nie.pval
-    back$nie.ci <- nie.ci
-  }
-  else {
-    var.pm <- v/te^2 + v.star * (nde^2)/(te^4) - 2 * covar * nde/(te^3)
-    var.nie <- v + v.star - 2 * covar
-    pm.pval <- pnorm(pm/sqrt(var.pm), lower.tail = F)
-    if (niealternative == "two-sided") {
+  var.pm <- v/te^2 + v.star * (nde^2)/(te^4) - 2 * covar * nde/(te^3)
+  var.nie <- v + v.star - 2 * covar
+  pm.pval <- pnorm(pm/sqrt(var.pm), lower.tail = F)
+  if (niealternative == "two-sided") {
       nie.pval <- 2 * pnorm(abs(nie)/sqrt(var.nie), lower.tail = F)
-    }
-    else {
-      nie.pval <- pnorm(nie/sqrt(var.nie), lower.tail = F)
-    }
-    pm.ci <- pm + c(qnorm(alp.conf), qnorm(1 - alp.conf)) * sqrt(var.pm)
-    nie.ci <- nie + c(qnorm(alp.conf), qnorm(1 - alp.conf)) * sqrt(var.nie)
-    back$pm.pval <- pm.pval
-    back$pm.ci <- pm.ci
-    back$nie.pval <- nie.pval
-    back$nie.ci <- nie.ci
+  } else {
+    nie.pval <- pnorm(nie/sqrt(var.nie), lower.tail = F)
   }
+  pm.ci <- pm + c(qnorm(alp.conf), qnorm(1 - alp.conf)) * sqrt(var.pm)
+  nie.ci <- nie + c(qnorm(alp.conf), qnorm(1 - alp.conf)) * sqrt(var.nie)
+  back$pm.pval <- pm.pval
+  back$pm.ci <- pm.ci
+  back$nie.pval <- nie.pval
+  back$nie.ci <- nie.ci
+
   back$nde <- nde
   back$nie <- nie
   back$pm <- pm

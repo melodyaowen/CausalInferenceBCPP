@@ -8,7 +8,7 @@ packages <- c("tidyverse", "lme4", "MASS", "Matrix", "matrixcalc", "latex2exp",
               "tmvtnorm", "ggplot2", "latex2exp", "reshape2", "gridExtra",
               "table1", "broom", "xtable", "logistf", "kableExtra", "geepack",
               "elrm", "broom", "dplyr", "tibble", "lme4", "broom.mixed",
-              "performance", "mice", "glmnet", "rms", "naniar", "writexl")
+              "performance", "mice", "glmnet", "rms", "naniar", "writexl", "car")
 
 # Install packages not yet installed
 installed_packages <- packages %in% rownames(installed.packages())

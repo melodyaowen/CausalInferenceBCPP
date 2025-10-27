@@ -130,6 +130,9 @@ threeWayComponentProp <- function(myData,
 
 # 2. Call on functions to create tables ----------------------------------------
 
+# OVERALL ANALYSIS
+
+
 # VMMC ANALYSIS
 ## Individual analysis uses data_hiv_negative_males
 vmmc_individual_table <- threeWayComponent(myData = data_hiv_negative_males,
@@ -142,14 +145,9 @@ vmmc_spillover_table <- threeWayComponentProp(myData = data_hiv_negative_untreat
                                               myComponentProp = "Z1_k",
                                               myTreatment = "random_arm",
                                               roundNumber = 3)
-## Overall analysis uses data_full
-vmmc_overall_table <- threeWayComponent(myData = data_full,
-                                        myOutcome = "endpoint_seroconvert",
-                                        myComponent = "endpoint_coverage_mc",
-                                        myTreatment = "random_arm")
+
 vmmc_list <- list(`Y1 by X1 Individual` = vmmc_individual_table,
-                  `Y1 by Z1 Spillover` = vmmc_spillover_table,
-                  `Y1 by X1 Overall` = vmmc_overall_table)
+                  `Y1 by Z1 Spillover` = vmmc_spillover_table)
 
 # HTC ANALYSIS
 ## Individual analysis uses data_hiv_negative
@@ -163,14 +161,9 @@ htc_spillover_table <- threeWayComponentProp(myData = data_hiv_negative_untreate
                                              myComponentProp = "Z2_k",
                                              myTreatment = "random_arm",
                                              roundNumber = 3)
-## Overall analysis uses data_full
-htc_overall_table <- threeWayComponent(myData = data_full,
-                                       myOutcome = "endpoint_seroconvert",
-                                       myComponent = "endpoint_coverage_htc",
-                                       myTreatment = "random_arm")
+
 htc_list <- list(`Y1 by X2 Individual` = htc_individual_table,
-                 `Y1 by Z2 Spillover` = htc_spillover_table,
-                 `Y1 by X2 Overall` = htc_overall_table)
+                 `Y1 by Z2 Spillover` = htc_spillover_table)
 
 # ART ANALYSIS
 ## Individual analysis data_hiv_positive
@@ -184,15 +177,9 @@ art_spillover_table <- threeWayComponentProp(myData = data_hiv_positive_untreate
                                              myComponentProp = "Z3_k",
                                              myTreatment = "random_arm",
                                              roundNumber = 3)
-## Overall analysis 
-art_overall_table <- threeWayComponent(myData = data_full,
-                                       myOutcome = "endpoint_death",
-                                       myComponent = "endpoint_coverage_onart",
-                                       myTreatment = "random_arm")
 
 art_list <- list(`Y2 by X3 Individual` = art_individual_table,
-                 `Y2 by Z3 Spillover` = art_spillover_table,
-                 `Y2 by X3 Overall` = art_overall_table)
+                 `Y2 by Z3 Spillover` = art_spillover_table)
 
 # 3. Save all table results ----------------------------------------------------
 

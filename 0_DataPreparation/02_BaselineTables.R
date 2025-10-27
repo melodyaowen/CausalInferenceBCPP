@@ -7,27 +7,39 @@ source("./RequiredPackages.R")
 
 # Full dataset with no exclusions
 data_full <- read.csv("./0_DataPreparation/CleanDataFiles/data_full.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # HIV negative dataset
 data_hiv_negative <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # HIV negative males dataset
 data_hiv_negative_males <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_males.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # HIV negative untreated dataset
 data_hiv_negative_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_negative_untreated.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # HIV positive dataset
 data_hiv_positive <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # HIV positive untreated dataset
 data_hiv_positive_untreated <- read.csv("./0_DataPreparation/CleanDataFiles/data_hiv_positive_untreated.csv", row.names = 1) %>%
-  mutate(across(where(is.logical), ~ as.numeric(.)))
+  mutate(across(where(is.logical), ~ as.numeric(.))) %>%
+  mutate(alcohol_weekly = as.character(alcohol_weekly),
+         partners_12mos = as.character(partners_12mos))
 
 # 1. Define functions for creating tables --------------------------------------
 
@@ -475,44 +487,51 @@ createComponentOutcomeTable <- function(roundNumber,
 
 # 2. Define necessary input variables for functions ----------------------------
 
+# Individual level variables to add to baseline table
 var_individual_list <- c("hiv_status_current",
                          "gender",
                          "age",
                          "marital_status",
                          "education",
+                         "alcohol_weekly",
+                         "partners_12mos",
                          "employment_status",
                          "monthly_income",
                          "length_residence",
                          "partners_lifetime",
-                         "partners_12mos",
                          "overall_access",
                          "exchange_12mos",
                          "condom_lastsex")
 
+# Individual level variable labels
 var_individual_list_names <- c("HIV Status at Study Start",
                                "Gender",
                                "Age",
                                "Marital Status",
                                "Education",
+                               "Weekly Alcohol Consumption",
+                               "Number of Partners (Last 12 Months)",
                                "Employment Status",
                                "Monthly Income",
                                "Length in Current Residence",
                                "Number of Partners (Lifetime)",
-                               "Number of Partners (Last 12 Months)",
                                "Has Access to Healthcare",
                                "Transactional Sex Ever",
                                "Condom Use in Last Sexual Encounter")
-  
+
+# Villager level variables
 var_village_list <- c("prop_male",
                       "prop_began_infected",
                       "hiv_refused_testing_prop",
                       "prop_vlsupp")
 
+# Village level variable labels
 var_village_list_names <- c("Village Proportion of Males in Cluster",
                             "Village Proportion of HIV Infected at Study Start",
                             "Village Proportion Refused HIV Testing at Study Start",
                             "Village Proportion Virally Suppressed Among HIV+")
 
+# Village level variables level order
 var_individual_levels_order <- c("Yes", "No",
                                  
                                  "Male", "Female", 
@@ -539,21 +558,26 @@ var_individual_levels_order <- c("Yes", "No",
                                  "Strongly disagree", "Disagree", 
                                  "Agree", "Strongly agree", 
                                  
+                                 "0", "1", "2", "3", "4", "5",
+                                 
                                  "Mean (SD)", "--")
 
-componentList <- c("endpoint_coverage_mc", "endpoint_coverage_htc", "endpoint_coverage_onart")
-componentLabels <- c("Component 1: VMMC", "Component 2: HTC", "Component 3: ART")
+componentList <- c("endpoint_coverage_mc", "endpoint_coverage_htc", 
+                   "endpoint_coverage_onart", "endpoint_coverage_any")
+componentLabels <- c("Component 1: VMMC", "Component 2: HTC", "Component 3: ART",
+                     "HIV- and received any component")
 
-componentPropList <- c("Z1_k", "Z2_k", "Z3_k")
+componentPropList <- c("Z1_k", "Z2_k", "Z3_k", "Zany_k_hivneg")
 componentPropLabels <- c("Village Proportion of Men who received VMMC",
                          "Village Proportion of People who received HTC",
-                         "Village Proportion of HIV+ who received ART")
+                         "Village Proportion of HIV+ who received ART",
+                         "Village Proportion of HIV- who received at least 1 component")
 
 outcomeList <- c("Y1_ik", "Y2_ik")
 outcomeLabels <- c("Outcome 1: HIV Seroconversion (3-year period)",
-                   "Outcome 2: Death (3-year period)")
+                   "Outcome 2: Mortality (3-year period)")
 
-levelOrder <- c("Yes", "No", "Female", "Mean (SD)", "--")
+levelOrder <- c("Yes", "No", "Female", "HIV-infected", "Mean (SD)", "--")
 
 # 3. Run function on each subset dataset and save ------------------------------
 
