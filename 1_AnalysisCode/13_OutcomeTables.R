@@ -130,9 +130,6 @@ threeWayComponentProp <- function(myData,
 
 # 2. Call on functions to create tables ----------------------------------------
 
-# OVERALL ANALYSIS
-
-
 # VMMC ANALYSIS
 ## Individual analysis uses data_hiv_negative_males
 vmmc_individual_table <- threeWayComponent(myData = data_hiv_negative_males,
@@ -144,7 +141,7 @@ vmmc_spillover_table <- threeWayComponentProp(myData = data_hiv_negative_untreat
                                               myOutcome = "endpoint_seroconvert",
                                               myComponentProp = "Z1_k",
                                               myTreatment = "random_arm",
-                                              roundNumber = 3)
+                                              roundNumber = 2)
 
 vmmc_list <- list(`Y1 by X1 Individual` = vmmc_individual_table,
                   `Y1 by Z1 Spillover` = vmmc_spillover_table)
@@ -160,7 +157,7 @@ htc_spillover_table <- threeWayComponentProp(myData = data_hiv_negative_untreate
                                              myOutcome = "endpoint_seroconvert",
                                              myComponentProp = "Z2_k",
                                              myTreatment = "random_arm",
-                                             roundNumber = 3)
+                                             roundNumber = 2)
 
 htc_list <- list(`Y1 by X2 Individual` = htc_individual_table,
                  `Y1 by Z2 Spillover` = htc_spillover_table)
@@ -176,7 +173,7 @@ art_spillover_table <- threeWayComponentProp(myData = data_hiv_positive_untreate
                                              myOutcome = "endpoint_death",
                                              myComponentProp = "Z3_k",
                                              myTreatment = "random_arm",
-                                             roundNumber = 3)
+                                             roundNumber = 2)
 
 art_list <- list(`Y2 by X3 Individual` = art_individual_table,
                  `Y2 by Z3 Spillover` = art_spillover_table)
