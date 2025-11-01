@@ -6,7 +6,7 @@ source("./RequiredPackages.R")
 source("./2_HelperFunctions/calcIEandPM.R")
 source("./2_HelperFunctions/backwardsGLMM.R")
 
-# 1. Analysis Function ----------------------------------------------------------
+# 1. Analysis Function for Mediation -------------------------------------------
 
 # General function to get total, direct, indirect effects and proportion mediated
 runMediationAnalysis <- function(roundNumber, # Number of significant digits desired
@@ -16,6 +16,7 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
                                  myTreatment, # Treatment name in dataset
                                  myComponent, # Component name in dataset
                                  myOutcome, # Outcome name in dataset
+                                 modelSelect = "No",
                                  myCovariates, # Vector of covariate names in dataset
                                  myInteractions, # Interactions desired
                                  myForcedTerms = NULL, # Terms that must remain in the model
@@ -60,7 +61,7 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
   
   
   # If there are no covariates or interactions, just run the model plainly
-  if(is.null(myCovariates) & is.null(myInteractions)){
+  if((is.null(myCovariates) & is.null(myInteractions)) | modelSelect == "No"){
     
     cat("Fitting model with no variable selection.\n\n")
     
@@ -86,7 +87,7 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
     formula_direct_updated <- formula_direct
     
     # Case when we have covariates or interactions
-  } else if(!is.null(myCovariates) | !is.null(myInteractions)){
+  } else if((!is.null(myCovariates) | !is.null(myInteractions)) & modelSelect == "Yes"){
     
     if(mySelectionCriteria != "LRT" & mySelectionCriteria != "p"){
       stop("Must select selection criteria 'LRT' or 'p'.")
@@ -391,15 +392,8 @@ runMediationAnalysis <- function(roundNumber, # Number of significant digits des
 } # End runMediationAnalysis()
 
 
-# roundNumber = 2 # Number of significant digits desired
-# myData = data_hiv_negative_complete # Dataset
-# mySubjectID = "subject_id" # Subject ID name in dataset
-# myClusterID = "cluster_id" # Cluster ID name in dataset
-# myTreatment = "T_k" # Treatment name in dataset
-# #myComponent = "X1_ik", # Component name in dataset
-# myOutcome = "Y1_ik" # Outcome name in dataset
-# myCovariates = NULL # Vector of covariate names in dataset
 
+# 2. Analysis Function for Overall Effects -------------------------------------
 
 # Overall analysis code
 # Overall function to get total, direct, indirect effects and proportion mediated
@@ -408,84 +402,153 @@ runOverallAnalysis <- function(roundNumber, # Number of significant digits desir
                                mySubjectID, # Subject ID name in dataset
                                myClusterID, # Cluster ID name in dataset
                                myTreatment, # Treatment name in dataset
-                               #myComponent, # Component name in dataset
+                               myComponent, # Component name in dataset
+                               myComponentProp, # Component proportion in dataset
                                myOutcome, # Outcome name in dataset
-                               myCovariates # Vector of covariate names in dataset
-){
-  
-  
-  
-  # Define model formulas for each sub-analysis
-  ## Total effects formula
-  rhs_total <- paste(c(myTreatment, myCovariates), collapse = " + ")
-  formula_total <- stats::as.formula(paste(myOutcome, "~", rhs_total))
-  
+                               modelSelect = "No",
+                               myCovariates, # Vector of covariate names in dataset
+                               myInteractions, # Interactions desired
+                               myForcedTerms = NULL, # Terms that must remain in the model
+                               myCutoff = NULL, # P-value cutoff for model selection
+                               mySelectionCriteria = "p"
+                               ){
   
   # Updating model data so that names are consistent
-  modelData <- myData %>%
+  
+  # Entire dataframe given
+  modelDataOverall <- myData %>%
     dplyr::select(subject_id = all_of(mySubjectID),
                   cluster_id = all_of(myClusterID),
                   all_of(myTreatment), 
+                  all_of(myComponent),
+                  all_of(myComponentProp),
                   all_of(myOutcome), 
                   all_of(myCovariates))
   
+  # Those in the dataframe who did not receive any treatment
+  modelDataIndividual <- modelDataOverall %>%
+    dplyr::filter(!!sym(myComponent) == 1)
   
+  modelDataSpillover <- modelDataOverall %>%
+    dplyr::filter(!!sym(myComponent) == 0)
+
+  # Define formulas for each sub-analysis
+  ## Overall Effects Formula
+  rhs_overall <- paste(c(myTreatment, myCovariates, myInteractions), collapse = " + ")
+  formula_overall <- stats::as.formula(paste(myOutcome, "~", rhs_overall))
+  ## Overall Individual Effects Formula
+  rhs_individual <- paste(c(myTreatment, myComponentProp, myCovariates, myInteractions), collapse = " + ")
+  formula_individual <- stats::as.formula(paste(myOutcome, "~", rhs_individual))
+  ## Overall Spillover Effects Formula
+  rhs_spillover <- paste(c(myTreatment, myComponentProp, myCovariates, myInteractions), collapse = " + ")
+  formula_spillover <- stats::as.formula(paste(myOutcome, "~", rhs_spillover))
   
-  # This is the dataset that excludes people who do not have all of the
-  # treatment, outcome, and mediator.
-  # THen print how many observations are dropped in the models due to 
-  # missing either outcome, treatment, or component
-  mf_complete <- model.frame(formula_total, data = modelData, na.action = na.omit)
-  usedData <- modelData[rownames(mf_complete), , drop = FALSE]
+  # Calculate p1, the cluster-size weight mean across all clusters of
+  # any component coverage
+  p1 <- sum(modelDataOverall[[myComponentProp]])/nrow(modelDataOverall)
   
-  cat("\nThere are", nrow(usedData), "out of", nrow(myData), 
-      "observations used in the Individual Effects models.\n", 
-      nrow(myData) - nrow(usedData), "removed due to missing data\n")
+  # Calculate Zany_k_bar_X1 for X_ik^any = 1
+  Zany_k_bar_X1 <- mean(modelDataIndividual[[myComponentProp]])
   
+  # Calculate Zany_k_bar_X0 for X_ik^any = 0
+  Zany_k_bar_X0 <- mean(modelDataSpillover[[myComponentProp]])
   
+  # If there are no covariates or interactions, just run the model plainly
+  if((is.null(myCovariates) & is.null(myInteractions)) | modelSelect == "No"){
+    
+    cat("Fitting models with no variable selection.\n\n")
+    
+    ## Overall Effects Model
+    model_overall_glmm <- glmer(update(formula_overall, . ~ . + (1 | cluster_id)),
+                                family = binomial(link = "logit"),
+                                data = modelDataOverall)
+    
+    ## Overall Individual Effects Model
+    model_individual_glmm <- glmer(update(formula_individual, . ~ . + (1 | cluster_id)),
+                                   family = binomial(link = "logit"),
+                                   data = modelDataIndividual)
+    
+    ## Overall Spillover Effects Model
+    model_spillover_glmm <- glmer(update(formula_spillover, . ~ . + (1 | cluster_id)),
+                                  family = binomial(link = "logit"),
+                                  data = modelDataSpillover)
+    
+    
+    length_temp <- max(length(c(myCovariates, myInteractions)))
+    total_variables_frame <- tibble(
+      `Inputted Variables` = `length<-`(c(myCovariates, myInteractions), length_temp),
+      `Removed Variables`  = `length<-`(c(NA), length_temp),
+      `Final Covariates`   = `length<-`(c(NA), length_temp)
+    )
+    
+    formula_overall_updated <- formula_overall
+    formula_individual_updated <- formula_individual
+    formula_spillover_updated <- formula_spillover
+    
+    # Case when we have covariates or interactions
+  } else if((!is.null(myCovariates) | !is.null(myInteractions)) & modelSelect == "Yes"){
+    
+    if(is.null(mySelectionCriteria)){
+      stop("Must select selection criteria 'LRT' or 'p'.")
+    } else if(mySelectionCriteria != "LRT" & mySelectionCriteria != "p"){
+      stop("Must select selection criteria 'LRT' or 'p'.")
+    }
+    
+    cat(paste0("Performing variable selection based off of ", mySelectionCriteria, "\n\n"))
+    
+    
+    # Step through Overall Effects Model
+    model_overall_glmm_list <- backward_glmer_p(myFormulaGLMM = formula_overall,
+                                                myDataGLMM = modelDataOverall,
+                                                clusterID = myClusterID,
+                                                required_terms = c(myTreatment, 
+                                                                   myForcedTerms),
+                                                pCutoff = myCutoff,
+                                                selectionCriteria = mySelectionCriteria)
+    
+    # Data frame to output comparing inputted variables to removed variables
+    length_temp <- max(length(c(myCovariates, myInteractions)),
+                       length(c(model_overall_glmm_list[[2]])),
+                       length(c(model_overall_glmm_list[[3]])))
+    total_variables_frame <- tibble(
+      `Inputted Variables` = `length<-`(c(myCovariates, myInteractions), length_temp),
+      `Removed Variables`  = `length<-`(c(model_overall_glmm_list[[2]]), length_temp),
+      `Final Covariates`   = `length<-`(c(model_overall_glmm_list[[3]]), length_temp)
+    )
+    
+    # Model fit for Overall Effects
+    model_overall_glmm <- model_overall_glmm_list[[1]]
+    
+    # Updated Overall Effects Formula
+    formula_overall_updated <- update(formula(model_overall_glmm_list[[1]]), 
+                                      paste(". ~ . - (1|", myClusterID, ")", sep=""))
+    
+    # Updated Individual Effects Formula
+    formula_individual_updated <- paste0(paste(myOutcome, "~", myTreatment, "+ "),
+                                paste(myComponentProp, sub(paste0(".*\\b", myTreatment, "\\b\\s*\\+\\s*"), "", 
+                                paste0(formula_overall_updated)), sep = " + "))
+    
+    # Updated Spillover Effects Formula
+    formula_spillover_updated <- paste0(paste(myOutcome, "~", myTreatment, "+ "),
+        paste(myComponentProp, sub(paste0(".*\\b", myTreatment, "\\b\\s*\\+\\s*"), "", 
+              paste0(formula_overall_updated)), sep = " + "))
+    
+    
+    # Fit Individual Effects Model
+    model_individual_glmm <- glmer(update(stats::as.formula(formula_individual_updated), 
+                                          . ~ . + (1 | cluster_id)),
+                                   family = binomial(link = "logit"),
+                                   data = modelDataIndividual) # All TREATED HIV- 
+    
+    # Fit Spillover Effects Model
+    model_spillover_glmm <- glmer(update(stats::as.formula(formula_spillover_updated), 
+                                         . ~ . + (1 | cluster_id)),
+                                  family = binomial(link = "logit"),
+                                  data = modelDataSpillover) # All UNTREATED HIV- 
+  }
   
-  # INDIVIDUAL TOTAL EFFECTS MODELS --------------------------------------------
-  ## Total GLM
-  model_total_glm <- glm(formula_total,
-                         family = binomial(link = 'logit'),
-                         data = usedData)
-  ## Total GLMM
-  model_total_glmm <- glmer(update(formula_total, . ~ . + (1 | cluster_id)), # Uses exchangeable
-                            family = binomial(link = "logit"),
-                            data = usedData)
-  ## Total GEE
-  model_total_gee <- geeglm(formula_total,
-                            id = cluster_id,
-                            family = binomial(link = "logit"),
-                            corstr = "exchangeable",
-                            data = usedData) # working correlation
-  
-  ## Summary Tables for Total Effects Models
-  ### GLM model table (NOT OR YET)
-  tidy_total_glm_full <- broom::tidy(model_total_glm) %>%
-    dplyr::select(term, estimate, std.error, p.value) %>%
-    mutate(conf.low  = estimate - qnorm(0.975) * std.error,
-           conf.high = estimate + qnorm(0.975) * std.error) %>%
-    mutate(Model = "GLM", 
-           Term = term,
-           Estimate = estimate,
-           Lower = conf.low,
-           Upper = conf.high,
-           `p-value` = p.value,
-           Variance = std.error^2,
-           SE = std.error) %>%
-    dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
-    dplyr::filter(Term != "(Intercept)") %>%
-    mutate(ICC = NA)
-  tidy_total_glm <- dplyr::select(tidy_total_glm_full, -Variance, -SE)
-  tidy_total_glm_or <- tidy_total_glm %>% # OR version of the table
-    mutate(Estimate = exp(Estimate),
-           Lower = exp(Lower),
-           Upper = exp(Upper)) %>%
-    rename(`Estimate (OR)` = Estimate)
-  
-  ### GLMM model table
-  tidy_total_glmm_full <- broom.mixed::tidy(model_total_glmm, effects = "fixed") %>%
+  # Overall Effects Table
+  tidy_overall_glmm <- broom.mixed::tidy(model_overall_glmm, effects = "fixed") %>%
     dplyr::select(term, estimate, std.error, p.value) %>%
     mutate(conf.low  = estimate - qnorm(0.975) * std.error,
            conf.high = estimate + qnorm(0.975) * std.error) %>%
@@ -499,21 +562,15 @@ runOverallAnalysis <- function(roundNumber, # Number of significant digits desir
            SE = std.error) %>%
     dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
     dplyr::filter(Term != "(Intercept)") %>%
-    mutate(ICC = performance::icc(model_total_glmm, tolerance = 0)$ICC_adjusted[[1]])
-  tidy_total_glmm <- dplyr::select(tidy_total_glmm_full, -Variance, -SE)
+    mutate(ICC = performance::icc(model_overall_glmm, tolerance = 0)$ICC_adjusted[[1]])
+  overall_effect_glmm <- dplyr::filter(tidy_overall_glmm, Term == "T_k")$Estimate
   
-  tidy_total_glmm_or <- tidy_total_glmm %>% # OR version of the table
-    mutate(Estimate = exp(Estimate),
-           Lower = exp(Lower),
-           Upper = exp(Upper)) %>%
-    rename(`Estimate (OR)` = Estimate)
-  
-  ### GEE model table
-  tidy_total_gee_full <- broom::tidy(model_total_gee) %>%
+  # Individual Effects Table
+  tidy_individual_glmm <- broom.mixed::tidy(model_individual_glmm, effects = "fixed") %>%
     dplyr::select(term, estimate, std.error, p.value) %>%
     mutate(conf.low  = estimate - qnorm(0.975) * std.error,
            conf.high = estimate + qnorm(0.975) * std.error) %>%
-    mutate(Model = "GEE", 
+    mutate(Model = "GLMM", 
            Term = term,
            Estimate = estimate,
            Lower = conf.low,
@@ -523,77 +580,250 @@ runOverallAnalysis <- function(roundNumber, # Number of significant digits desir
            SE = std.error) %>%
     dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
     dplyr::filter(Term != "(Intercept)") %>%
-    mutate(ICC = model_total_gee$geese$alpha[[1]])
-  tidy_total_gee <- dplyr::select(tidy_total_gee_full, -Variance, -SE)
+    mutate(ICC = performance::icc(model_individual_glmm, tolerance = 0)$ICC_adjusted[[1]])
+  individual_effect_glmm <- dplyr::filter(tidy_individual_glmm, Term == myTreatment)$Estimate
   
-  tidy_total_gee_or <- tidy_total_gee %>% # OR version of the table
+  # Spillover Effects Table
+  tidy_spillover_glmm <- broom.mixed::tidy(model_spillover_glmm, effects = "fixed") %>%
+    dplyr::select(term, estimate, std.error, p.value) %>%
+    mutate(conf.low  = estimate - qnorm(0.975) * std.error,
+           conf.high = estimate + qnorm(0.975) * std.error) %>%
+    mutate(Model = "GLMM", 
+           Term = term,
+           Estimate = estimate,
+           Lower = conf.low,
+           Upper = conf.high,
+           `p-value` = p.value,
+           Variance = std.error^2,
+           SE = std.error) %>%
+    dplyr::select(Model, Term, Estimate, Lower, Upper, `p-value`, Variance, SE) %>%
+    dplyr::filter(Term != "(Intercept)") %>%
+    mutate(ICC = performance::icc(model_spillover_glmm, tolerance = 0)$ICC_adjusted[[1]])
+  spillover_effect_glmm <- dplyr::filter(tidy_spillover_glmm, Term == myTreatment)$Estimate
+  
+  
+  # Format big table that has all results
+  overall_table <- bind_rows(mutate(tidy_overall_glmm, Model = "Overall GLMM"), 
+                             mutate(tidy_individual_glmm, Model = "Individual GLMM"),
+                             mutate(tidy_spillover_glmm, Model = "Spillover GLMM") 
+                             ) %>%
+    dplyr::filter(Term == myTreatment) %>%
+    mutate(or = exp(Estimate),
+           or.lower = exp(Lower),
+           or.upper = exp(Upper)) %>%
+    # Round to pre-specified number
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(`Log-Odds Estimate (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    mutate(`OR (95% CI)` = paste0(or, " (", or.lower, ", ", or.upper, ")")) %>%
+    dplyr::select(Model, Term, `Log-Odds Estimate (95% CI)`, `OR (95% CI)`,
+                  `p-value`, Variance, SE, ICC)
+  
+  # Decomposition in table form
+  decompositionTable <- tibble(`Estimate Form` = c("Log-Odds", "OR"),
+                               Overall = c(overall_effect_glmm, exp(overall_effect_glmm)),
+                               Spillover = c(spillover_effect_glmm, exp(spillover_effect_glmm)),
+                               Individual = c(individual_effect_glmm, exp(individual_effect_glmm)),
+                               `Overall Calculated` = c(p1*individual_effect_glmm + (1-p1)*spillover_effect_glmm,
+                                                        exp(p1*individual_effect_glmm + (1-p1)*spillover_effect_glmm))
+  )
+  
+  # Meta-Data about analysis
+  overall_method_info <- tibble(Information = c("n of HIV- individuals",
+                                                "p1 - study proportion of individuals who took at least 1 component",
+                                                 
+                                                "Average Zany_k for X = 1",
+                                                "Average Zany_k for X = 0",
+
+                                                "X_ik^any = 1",
+                                                "X_ik^any = 0",
+
+                                                "Overall Effects Formula Original",
+                                                "Overall Effects Formula Updated",
+                                                "n for Overall Effects",
+                                                 
+                                                "Individual Effects Formula Original",
+                                                "Individual Effects Formula Updated",
+                                                "n for Individual Effects",
+                                                 
+                                                "Spillover Effects Formula Original",
+                                                "Spillover Effects Formula Updated",
+                                                "n for Spillover Effects"
+                                                ),
+  
+  Value = c(paste0(nrow(modelDataOverall)),
+            paste0(round(p1, roundNumber)),
+            
+            paste0(round(Zany_k_bar_X0, roundNumber)),
+            paste0(round(Zany_k_bar_X1, roundNumber)),
+            
+            paste0(nrow(modelDataIndividual)),
+            paste0(nrow(modelDataSpillover)),
+            
+            paste0(formula_overall),
+            paste0(formula_overall_updated),
+            paste0(nrow(modelDataOverall)),
+            
+            paste0(formula_individual),
+            paste0(formula_individual_updated),
+            paste0(nrow(modelDataIndividual)),
+            
+            paste0(formula_spillover),
+            paste0(formula_spillover_updated),
+            paste0(nrow(modelDataSpillover))
+            )
+  )
+  
+  # Formatting total model output for overall GLMM
+  returnOverallTable <- tidy_overall_glmm %>%
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Overall Effects Model",
+           `Estimate (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `Estimate (95% CI)`, `p-value`, ICC, Variance, SE)
+  returnOverallTable_or <- tidy_overall_glmm %>%
     mutate(Estimate = exp(Estimate),
            Lower = exp(Lower),
            Upper = exp(Upper)) %>%
-    rename(`Estimate (OR)` = Estimate)
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Overall Effects Model",
+           `OR (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `OR (95% CI)`, `p-value`, ICC, Variance, SE)
   
-  ### Final Individual Total Effects Table
-  table_total <- bind_rows(tidy_total_glm, tidy_total_glmm) %>%
-    bind_rows(tidy_total_gee)
-  table_total_or <- bind_rows(tidy_total_glm_or, tidy_total_glmm_or) %>%
-    bind_rows(tidy_total_gee_or)
-  
-  table_total_full <- bind_rows(tidy_total_glm_full, tidy_total_glmm_full) %>%
-    bind_rows(tidy_total_gee_full)
-  
-  
-  # GET ALL INFO FOR DE, IE, TE, and PM ----------------------------------------
-  
-  te_full_info_covars <- table_total_full %>%
-    mutate(Effect = "Total") %>%
-    relocate(Model, Term, Effect)
-  
-  te_full_info_covars_or <- te_full_info_covars %>%
+  # Formatting total model output for individual GLMM
+  returnIndividualTable <- tidy_individual_glmm %>%
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Individual Effects Model",
+           `Estimate (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `Estimate (95% CI)`, `p-value`, ICC, Variance, SE)
+  returnIndividualTable_or <- tidy_individual_glmm %>%
     mutate(Estimate = exp(Estimate),
            Lower = exp(Lower),
            Upper = exp(Upper)) %>%
-    rename(`Estimate (OR)` = Estimate)
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Individual Effects Model",
+           `OR (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `OR (95% CI)`, `p-value`, ICC, Variance, SE)
   
-  # FINAL TABLES WITH ROUNDING TO RETURN ---------------------------------------
+  # Formatting total model output for overall GLMM
+  returnSpilloverTable <- tidy_spillover_glmm %>%
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Spillover Effects Model",
+           `Estimate (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `Estimate (95% CI)`, `p-value`, ICC, Variance, SE)
+  returnSpilloverTable_or <- tidy_spillover_glmm %>%
+    mutate(Estimate = exp(Estimate),
+           Lower = exp(Lower),
+           Upper = exp(Upper)) %>%
+    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber))) %>%
+    mutate(Model = "Spillover Effects Model",
+           `OR (95% CI)` = paste0(Estimate, " (", Lower, ", ", Upper, ")")) %>%
+    dplyr::select(Model, Term, `OR (95% CI)`, `p-value`, ICC, Variance, SE)
   
-  # Total effects all model info with covariates
-  te_full_info_covars_return <- te_full_info_covars %>% # return this
-    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
-  # Total effects all model info with covariates (OR)
-  te_full_info_covars_or_return <- te_full_info_covars_or %>% # return this
-    dplyr::mutate(across(where(is.numeric), ~ round(.x, digits = roundNumber)))
   
-  # Create dataset of meta-data about the analysis
-  meta_data <- tibble(
-    `Information` = c("Number of Observations in Inputted Dataset",
-                      
-                      "Number of Observations used in Models",
-                      
-                      "Number of Observations Missing the Treatment Variable",
-                      "Number of Observations Missing the Outcome Variable",
-
-                      "Total Effects Model Formula"
-    ),
-    `Value` = c(paste0(nrow(myData)),
-                
-                paste0(nrow(usedData)),
-                
-                paste0(nrow(dplyr::filter(myData, is.na(.data[[myTreatment]])))),
-                paste0(nrow(dplyr::filter(myData, is.na(.data[[myOutcome]])))),
-
-                paste0(formula_total)
-    )
+  
+  # Getting component frequencies across treatment group and outcome
+  frequencyData <- modelDataOverall %>%
+    dplyr::select(Treatment = all_of(myTreatment),
+                  Component = all_of(myComponent),
+                  Outcome = all_of(myOutcome)
+    ) %>%
+    mutate(Treatment = ifelse(Treatment == 1, "Treatment", 
+                              ifelse(Treatment == 0, "Control", NA)),
+           Outcome = ifelse(Outcome == 1, "Yes", ifelse(Outcome == 0, "No", "Missing")),
+           Component = ifelse(Component == 1, "Yes", ifelse(Component == 0, "No", "Missing"))) %>%
+    mutate(across(everything(), tidyr::replace_na, "Missing")) %>%
+    
+    mutate(across(everything(), 
+                  ~factor(., levels = c("Yes", "No", "Female", "Began study HIV-infected", 
+                                        "Control", "Treatment", "Missing")))) %>%
+    group_by(across(everything())) %>%
+    dplyr::summarize(Count = n(), .groups = "drop") %>%
+    ungroup() %>%
+    pivot_wider(
+      names_from = Component,
+      values_from = Count
+    ) %>%
+    arrange(Treatment, Outcome) %>%
+    mutate(across(where(is.numeric), tidyr::replace_na, 0)) %>%
+    mutate(`Total` = rowSums(across(where(is.numeric) & !any_of("Missing")), 
+                             na.rm = TRUE)) %>%
+    relocate(any_of("Missing"), .after = last_col())
+  frequencyDataTotals <- frequencyData %>%
+    filter(Outcome != "Missing") %>%
+    group_by(Treatment) %>%
+    dplyr::summarize(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop") %>%
+    mutate(Outcome = "Total", .before = 1)
+  frequencyOutput <- bind_rows(frequencyData, frequencyDataTotals) %>%
+    arrange(Treatment,
+            factor(Outcome, levels = c("Yes", "No", "Total", "Missing")))
+  
+  
+  # Distribution of proportion coverage
+  distDataProp <- modelDataOverall %>%
+    dplyr::select(Treatment = all_of(myTreatment),
+                  Component = all_of(myComponentProp),
+                  Outcome = all_of(myOutcome)
+    ) %>%
+    mutate(Treatment = ifelse(Treatment == 1, "Treatment", 
+                              ifelse(Treatment == 0, "Control", NA)),
+           Outcome = ifelse(Outcome == 1, "Yes", ifelse(Outcome == 0, "No", "Missing"))) %>%
+    mutate(across(where(is.character), tidyr::replace_na, "Missing")) %>%
+    mutate(across(where(is.character), 
+                  ~factor(., levels = c("Yes", "No", "Female", "Began study HIV-infected", 
+                                        "Control", "Treatment", "Total", "Missing")))) %>%
+    group_by(Treatment, Outcome) %>%
+    dplyr::summarize(Mean = round(mean(Component), roundNumber),
+                     Min = round(min(Component), roundNumber),
+                     Max = round(max(Component), roundNumber),
+                     SD = round(sd(Component), roundNumber),
+                     #Variance = round(sd(Component)^2, roundNumber),
+                     Count = n(),
+                     .groups = "drop")
+  distDataTotalProp <- modelDataOverall %>%
+    dplyr::select(Treatment = all_of(myTreatment),
+                  Component = all_of(myComponentProp),
+                  Outcome = all_of(myOutcome)
+    ) %>%
+    mutate(Treatment = ifelse(Treatment == 1, "Treatment", 
+                              ifelse(Treatment == 0, "Control", NA)),
+           Outcome = ifelse(is.na(Outcome), "Missing", "Total")) %>%
+    mutate(across(where(is.character), tidyr::replace_na, "Missing")) %>%
+    mutate(across(where(is.character), 
+                  ~factor(., levels = c("Yes", "No", "Female", "Began study HIV-infected", 
+                                        "Control", "Treatment", "Total", "Missing")))) %>%
+    group_by(Treatment, Outcome) %>%
+    dplyr::summarize(Mean = round(mean(Component), roundNumber),
+                     Min = round(min(Component), roundNumber),
+                     Max = round(max(Component), roundNumber),
+                     SD = round(sd(Component), roundNumber),
+                     #Variance = round(sd(Component)^2, roundNumber),
+                     Count = n(),
+                     .groups = "drop") %>%
+    dplyr::filter(Outcome != "Missing")
+  distOutputProp <- bind_rows(distDataProp, distDataTotalProp) %>%
+    arrange(Treatment,
+            factor(Outcome, levels = c("Yes", "No", "Total", "Missing")))
+  
+  
+  returnList <- list(`Component Frequencies` = frequencyOutput,
+                     `Proportion Distributions` = distOutputProp,
+                     `Meta Data` = overall_method_info,
+                     `All Estimates` = overall_table,
+                     `Decomposition` = decompositionTable,
+                     
+                     `Overall Effects` = returnOverallTable,
+                     `Overall Effects (OR)` = returnOverallTable_or,
+                     
+                     `Individual Effects` = returnIndividualTable,
+                     `Individual Effects (OR)` = returnIndividualTable_or,
+                     
+                     `Spillover Effects` = returnSpilloverTable,
+                     `Spillover Effects (OR)` = returnSpilloverTable_or,
+                     
+                     `Covariate List` = total_variables_frame
   )
   
-  # All output list
-  output_list <- list(`Meta Data` = meta_data,
-                      
-                      `Total Effects` = te_full_info_covars_return,
-                      `Total Effects (OR)` = te_full_info_covars_or_return
-  )
   
-  return(output_list)
-} # End runMediationAnalysis()
+} # End runOverallAnalysis()
 
 
 

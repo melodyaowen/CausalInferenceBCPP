@@ -7,7 +7,9 @@ backward_glmer_p <- function(myFormulaGLMM,
                              pCutoff = 0.20,
                              selectionCriteria = "p") {
   
-  ctrl_harder <- glmerControl(
+  my_data_frame <<- myDataGLMM
+  
+  ctrl_harder <<- glmerControl(
     optimizer = "bobyqa",                 # generally more stable than Nelder–Mead
     optCtrl   = list(maxfun = 2e5),       # raise iteration budget (try 1e5–5e5)
     calc.derivs = TRUE,                   # better Hessian diagnostics
@@ -17,10 +19,10 @@ backward_glmer_p <- function(myFormulaGLMM,
   )
   
   # Start GLMM from full fixed effects + random intercept
-  form_full <- update(myFormulaGLMM, paste(". ~ . + (1|", clusterID, ")", sep=""))
+  form_full <<- update(myFormulaGLMM, paste(". ~ . + (1|", clusterID, ")", sep=""))
   
   # Initial fit
-  fit <- glmer(form_full, data = myDataGLMM, 
+  fit <- glmer(form_full, data = my_data_frame, 
                family = binomial(link = "logit"), 
                control = ctrl_harder)
   
@@ -58,7 +60,7 @@ backward_glmer_p <- function(myFormulaGLMM,
     cat("Fitting the model: ", paste(formulaUpdated), "\n")
     
     # Fit new model
-    fitCurrent <- glmer(formulaUpdated, data = myDataGLMM, 
+    fitCurrent <- glmer(formulaUpdated, data = my_data_frame, 
                         family = binomial(link = "logit"), 
                         control = ctrl_harder)
     
@@ -67,12 +69,10 @@ backward_glmer_p <- function(myFormulaGLMM,
       # LRTs for each variable
       lrt_tab <- drop1(fitCurrent, test = "Chisq")
       criteria_tab <- lrt_tab
-      
     } else if(selectionCriteria == "p"){
       # Wald p-values for whole terms
       wald_tab <- car::Anova(fitCurrent, type = 3)
       criteria_tab <- wald_tab
-      
     } else(stop("Must select selection criteria 'LRT' or 'p'."))
 
     # If nothing else in the candidate vector of variables to remove,
@@ -105,7 +105,7 @@ backward_glmer_p <- function(myFormulaGLMM,
       worst_term <- worst_row$ID
       worst_p <- worst_row$P
       
-      cat(paste0("Checking the term: ", worst_term, "\n\n"))
+      cat(paste0("Checking the term: ", worst_term, " with p-value cut-off ", pCutoff, "\n\n"))
       
       # CASE 1: TERM IS BETTER THAN CUTOFF
       # Break out fof "keepChecking" loop and the main forloop
